@@ -1,0 +1,58 @@
+# Python 기본
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+*.log
+
+# 가상환경 (venv, pipenv 등)
+.venv/
+venv/
+env/
+ENV/
+Pipfile.lock
+poetry.lock
+
+# IDE 설정 파일
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# 운영체제별 임시 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter Notebook 체크포인트
+.ipynb_checkpoints/
+
+# 테스트/커버리지
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# 빌드
+build/
+dist/
+*.spec
+
+# mypy, pylint 등 도구 캐시
+.mypy_cache/
+.pytype/
+.pylint.d/
+
+# FastAPI/Flask 관련
+instance/
+*.db
+*.sqlite3
+
+# dotenv 설정 (개인 API 키나 설정 포함)
+#.env
+#.env.*
+# docker 관련 (선택)
+**/docker-compose.override.yml
