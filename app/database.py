@@ -38,7 +38,7 @@ def get_db_session():
     finally:
         session.close()
 
-def init_db():
+def     init_db():
     Base.metadata.create_all(bind=engine)
 
 def drop_db():
