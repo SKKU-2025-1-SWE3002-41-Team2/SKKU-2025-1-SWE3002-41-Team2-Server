@@ -1,20 +1,28 @@
-# docker-compose.mysql.yml
-version: '3.8'
-
+# docker-compose.yml (로컬 개발용 - 간단한 설정)
 services:
-  db:
-    container_name: team2-mysql
+  mysql:
     image: mysql:8.0
-    ports:
-      - "3307:3306"
+    container_name: excel-platform-mysql
+    restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=1234
-      - MYSQL_DATABASE=excel_platform
-      - MYSQL_USER=excel
-      - MYSQL_PASSWORD=1234
-    command: --default-authentication-plugin=mysql_native_password
+      # 최소한의 환경 변수만 설정
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: excel_platform_db
+      # 로컬 개발용 - 간단한 인증 방식
+      MYSQL_AUTH_PLUGIN: mysql_native_password
+    ports:
+      # 포트 매핑
+      - "3307:3306"
     volumes:
+      # 데이터 저장용 볼륨만
       - mysql_data:/var/lib/mysql
+    # 간단한 헬스체크
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 3
+      interval: 10s
 
+# 볼륨 정의
 volumes:
   mysql_data:
