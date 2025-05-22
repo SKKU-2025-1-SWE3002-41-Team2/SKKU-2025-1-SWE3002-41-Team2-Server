@@ -51,8 +51,9 @@ instance/
 *.db
 *.sqlite3
 
+.idea
 # dotenv 설정 (개인 API 키나 설정 포함)
 #.env
 #.env.*
 # docker 관련 (선택)
-**/docker-compose.override.yml
+#**/docker-compose.override.yml

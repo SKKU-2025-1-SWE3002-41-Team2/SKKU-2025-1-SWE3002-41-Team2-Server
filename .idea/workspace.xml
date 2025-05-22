@@ -4,14 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c2669a14-f19a-4772-8204-37b3917f67da" name="변경" comment="Initial commit">
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/SKKU-2025-1-SWE3002-41-Team2-Server.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/SKKU-2025-1-SWE3002-41-Team2-Server.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirments.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirments.txt" afterDir="false" />
-    </list>
+    <list default="true" id="c2669a14-f19a-4772-8204-37b3917f67da" name="변경" comment="Initial commit" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -247,7 +240,7 @@
       <updated>1747729138259</updated>
       <workItem from="1747729139167" duration="795000" />
       <workItem from="1747837335806" duration="138000" />
-      <workItem from="1747900832309" duration="7081000" />
+      <workItem from="1747900832309" duration="7705000" />
     </task>
     <servers />
   </component>

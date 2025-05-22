@@ -1,7 +1,6 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import init_db
 from app.routers import test_db  # 테스트 라우터 임포트
 from dotenv import load_dotenv
 
