@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 from contextlib import contextmanager
 from dotenv import load_dotenv
+from app.init_data import seed_initial_data
 
 load_dotenv()
 
@@ -39,7 +40,9 @@ def get_db_session():
         session.close()
 
 def init_db():
+    import app.models
     Base.metadata.create_all(bind=engine)
+    seed_initial_data()
 
 def drop_db():
     Base.metadata.drop_all(bind=engine)
