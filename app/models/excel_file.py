@@ -7,6 +7,6 @@ class ExcelFile(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     messageId = Column(Integer, ForeignKey("message.id"), nullable=False)  # ✅ 수정됨
     filename = Column(String(255), nullable=False)
-    uploadedAt = Column(DateTime, server_default=func.now())
-    lastModified = Column(DateTime)
+    createdAt = Column(DateTime, server_default=func.now())
+    modifiedAt = Column(DateTime)
     excelData = Column(JSON)
