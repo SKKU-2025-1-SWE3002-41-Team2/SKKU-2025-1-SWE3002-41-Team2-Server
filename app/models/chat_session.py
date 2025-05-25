@@ -8,4 +8,4 @@ class ChatSession(Base):
     userId = Column(Integer, ForeignKey("user.id"), nullable=False)
     name = Column(String(255))
     createdAt = Column(DateTime, server_default=func.now())
-    modifiedAt = Column(DateTime)
+    modifiedAt = Column(DateTime, server_default=func.now())
