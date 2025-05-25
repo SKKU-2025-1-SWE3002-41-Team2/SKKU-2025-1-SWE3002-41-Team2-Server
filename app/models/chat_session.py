@@ -7,5 +7,5 @@ class ChatSession(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     userId = Column(Integer, ForeignKey("user.id"), nullable=False)
     name = Column(String(255))
-    startedAt = Column(DateTime, server_default=func.now())
+    createdAt = Column(DateTime, server_default=func.now())
     modifiedAt = Column(DateTime)
