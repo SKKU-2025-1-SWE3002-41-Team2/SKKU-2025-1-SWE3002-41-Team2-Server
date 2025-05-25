@@ -13,6 +13,15 @@ Interface Summary:
 - def create_session_or_add_message(data: ChatSessionCreateRequest, db: Session) -> ChatSession:
 - def delete_session(sessionId: int, db: Session) -> None
 """
+"""
+todo 
+채팅방 이름 수정
+채팅방 삭제 기능(포함된 채팅까지 전부삭제)
+
+채팅 히스토리 로딩 
+"""
+
+
 
 def get_sessions_by_user(userId: int, db: Session) -> List[ChatSession]:
     sessions = (
@@ -50,21 +59,20 @@ def create_session_or_add_message(data: ChatSessionCreateRequest, db: Session) -
         )
         message_to_ask = data.message
 
+    existing_sheet = db.query(ChatSheet).filter(ChatSheet.sessionId == session.id).first()
 
+    sheet_data = data.sheetData or []
 
-    if data.sheetData:
-        existing_sheet = db.query(ChatSheet).filter(ChatSheet.sessionId == session.id).first()
-
-        if existing_sheet:
-            existing_sheet.sheetData = data.sheetData
-            sheet_to_ask = existing_sheet
-        else:
-            sheet = ChatSheet(
-                sessionId=session.id,
-                sheetData=data.sheetData
-            )
-            db.add(sheet)
-            sheet_to_ask = sheet
+    if existing_sheet:
+        existing_sheet.sheetData = sheet_data
+        sheet_to_ask = existing_sheet
+    else:
+        sheet = ChatSheet(
+            sessionId=session.id,
+            sheetData=sheet_data
+        )
+        db.add(sheet)
+        sheet_to_ask = sheet
 
 
 
