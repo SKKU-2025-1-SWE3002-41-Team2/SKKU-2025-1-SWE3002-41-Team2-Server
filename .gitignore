@@ -19,6 +19,8 @@ poetry.lock
 # IDE 설정 파일
 .vscode/
 .idea/
+*.iml
+*.xml
 *.sublime-project
 *.sublime-workspace
 
@@ -52,7 +54,7 @@ instance/
 *.sqlite3
 
 # dotenv 설정 (개인 API 키나 설정 포함)
-#.env
-#.env.*
+.env
+.env.*
 # docker 관련 (선택)
 **/docker-compose.override.yml
