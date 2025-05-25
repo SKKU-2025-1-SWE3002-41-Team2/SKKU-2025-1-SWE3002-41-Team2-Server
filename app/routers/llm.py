@@ -1,9 +1,27 @@
-from fastapi import APIRouter, HTTPException
+# app/services/llm_service.py
+import os
+from dotenv import load_dotenv
+import openai
 
-router = APIRouter()
 
-@router.post("/command")
-def process_command(command: str):
-    # TODO: LLM과의 연동 처리 (예: OpenAI API 호출)
-    response = {"response": f"Processed command: {command}"}
-    return response
+load_dotenv()
+
+async def process_natural_language_command(command: str) -> str:
+    api_key = os.getenv("LLM_API_KEY")
+    if not api_key:
+        raise ValueError("LLM_API_KEY is not set in environment variables.")
+
+    openai.api_key = api_key
+
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are an assistant that helps with Excel tasks."},
+            {"role": "user", "content": command}
+        ],
+        temperature=0.5,
+        max_tokens=1000
+    )
+
+    result = response['choices'][0]['message']['content'].strip()
+    return result
