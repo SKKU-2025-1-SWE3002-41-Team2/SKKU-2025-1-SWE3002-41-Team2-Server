@@ -2,6 +2,12 @@ from sqlalchemy.orm import Session
 from app.models import User
 from fastapi import HTTPException, status
 
+"""
+Interface Summary:
+- def login(db: Session, username: str, password: str) -> User
+"""
+
+
 def login(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
     print("gooood")

@@ -32,5 +32,7 @@ def seed_initial_data():
             db.flush()
             print("✅ 기본 메시지 추가됨")
 
+        db.commit()
+
     finally:
         db.close()
