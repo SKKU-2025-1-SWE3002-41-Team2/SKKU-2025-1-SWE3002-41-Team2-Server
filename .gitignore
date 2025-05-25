@@ -58,3 +58,7 @@ instance/
 .env.*
 # docker 관련 (선택)
 **/docker-compose.override.yml
+
+
+#test
+http/
