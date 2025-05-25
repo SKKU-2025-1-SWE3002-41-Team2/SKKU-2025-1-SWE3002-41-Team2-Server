@@ -1,7 +1,5 @@
-from typing import Any
-
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from app.exceptions.http_exceptions import SessionNotFoundException
 from app.models import ChatSession
 from typing import cast, List
 
@@ -21,6 +19,6 @@ def get_sessions_by_user(userId: int, db: Session) -> List[ChatSession]:
     )
 
     if not sessions:
-        raise HTTPException(status_code=404, detail="No chat sessions found for this user.")
+        raise SessionNotFoundException
 
     return cast(List[ChatSession], sessions)
