@@ -12,11 +12,8 @@ init_db()
 
 # # 라우터 등록
 
-from app.routers import auth
-app.include_router(auth.router, prefix="/api/auth")
-# app.include_router(chat.routers, prefix="/api/chat")
-# app.include_router(excel.routers, prefix="/api/excel")
-
+from app.routers import router as api_router
+app.include_router(api_router, prefix="/api")
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
