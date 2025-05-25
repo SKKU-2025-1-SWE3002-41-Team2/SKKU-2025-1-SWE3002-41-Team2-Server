@@ -1,0 +1,20 @@
+from fastapi import APIRouter, Depends, status, Response
+from sqlalchemy.orm import Session
+from app.database import get_db_session
+from app.services.auth import login
+from app.schemas.auth import LoginRequest
+
+router = APIRouter()
+
+@router.post(
+    "/login",
+    summary="login",
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "로그인 성공"},
+        401: {"description": "로그인 실패 (Unauthorized)"},
+    }
+)
+def login_route(data: LoginRequest, db: Session = Depends(get_db_session)):
+    user = login(db, data.username, data.password)
+    return {"message": "로그인 성공", "userId": user.id}

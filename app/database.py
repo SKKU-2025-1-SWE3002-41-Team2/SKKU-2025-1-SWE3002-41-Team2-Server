@@ -1,15 +1,12 @@
-# app/database.py
-
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
-from contextlib import contextmanager
 from dotenv import load_dotenv
 from app.init_data import seed_initial_data
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")  # ✅ 직접 읽기
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set. Check your .env file.")
@@ -27,20 +24,15 @@ SessionLocal = scoped_session(SessionFactory)
 Base = declarative_base()
 Base.query = SessionLocal.query_property()
 
-@contextmanager
 def get_db_session():
-    session = SessionLocal()
+    db = SessionLocal()
     try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
+        yield db
     finally:
-        session.close()
+        db.close()
 
 def init_db():
-    import app.models
+    import app.models  # 이 위치는 OK
     Base.metadata.create_all(bind=engine)
     seed_initial_data()
 
