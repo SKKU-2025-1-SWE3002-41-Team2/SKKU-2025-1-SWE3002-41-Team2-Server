@@ -1,5 +1,5 @@
 def seed_initial_data():
-    from app.models import User, ChatSession, Message
+    from app.models import User, ChatSession, Message, ChatSheet
     from app.database import get_db_session
 
     db = next(get_db_session())  # ✅ 세션 꺼내기
@@ -9,7 +9,7 @@ def seed_initial_data():
         if not user:
             user = User(username="admin", password="admin123")
             db.add(user)
-            db.flush()  # ID 생성 보장
+            db.flush()
             print("✅ admin 사용자 추가됨")
 
         # 2. ChatSession 생성
@@ -29,8 +29,23 @@ def seed_initial_data():
                 senderType="USER"
             )
             db.add(message)
-            db.flush()
             print("✅ 기본 메시지 추가됨")
+
+        # 4. ChatSheet 생성
+        sheet = db.query(ChatSheet).filter(ChatSheet.sessionId == session.id).first()
+        if not sheet:
+            sheet = ChatSheet(
+                sessionId=session.id,
+                sheetData=[
+                    ["Item", "Price"],
+                    ["Notebook", 1200],
+                    ["Pen", 300]
+                ]
+            )
+            db.add(sheet)
+            print("✅ 기본 시트 데이터 추가됨")
+
+        db.commit()
 
     finally:
         db.close()

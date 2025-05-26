@@ -11,8 +11,8 @@ router = APIRouter()
     summary="login",
     status_code=status.HTTP_200_OK,
     responses={
-        200: {"description": "로그인 성공"},
-        401: {"description": "로그인 실패 (Unauthorized)"},
+        200: {"description": "login success"},
+        401: {"description": "login fail (Unauthorized)"},
     }
 )
 def login_route(data: LoginRequest, db: Session = Depends(get_db_session)):
