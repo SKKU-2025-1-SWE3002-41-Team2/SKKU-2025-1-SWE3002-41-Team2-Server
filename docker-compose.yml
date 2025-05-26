@@ -1,20 +1,21 @@
-# docker-compose.mysql.yml
 version: '3.8'
-
 services:
-  db:
-    container_name: team2-mysql
+  mysql:
     image: mysql:8.0
+    container_name: excel-mysql
     ports:
-      - "3307:3306"
+      - "3306:3306"  # 3307에서 3306으로 변경
     environment:
-      - MYSQL_ROOT_PASSWORD=1234
-      - MYSQL_DATABASE=excel_platform
-      - MYSQL_USER=excel
-      - MYSQL_PASSWORD=1234
-    command: --default-authentication-plugin=mysql_native_password
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: excel_platform
+      MYSQL_USER: excel
+      MYSQL_PASSWORD: 1234
+      # 모든 IP에서 접근 허용
+      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
+    command: --default-authentication-plugin=mysql_native_password --bind-address=0.0.0.0
     volumes:
       - mysql_data:/var/lib/mysql
+    restart: unless-stopped
 
 volumes:
   mysql_data:
