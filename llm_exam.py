@@ -244,6 +244,7 @@ class ExcelFunction(BaseModel):
         return self.parameters.validate_parameters()
 
 
+
 class ExcelFunctionSequence(BaseModel):
     """엑셀 함수들의 시퀀스를 나타내는 모델"""
     functions: List[ExcelFunction]
@@ -377,3 +378,4 @@ if __name__ == "__main__":
 
     # 유효성 검사
     print(f"전체 시퀀스 유효성: {sequence.validate_sequence()}")
+
