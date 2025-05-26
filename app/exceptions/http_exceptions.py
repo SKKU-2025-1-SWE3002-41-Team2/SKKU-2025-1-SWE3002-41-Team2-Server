@@ -16,7 +16,7 @@ UserNotFoundException = HTTPException(
 #### Session ####
 SessionNotFoundException = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
-    detail="No chat sessions found for this user."
+    detail="No chat sessions found."
 )
 
 EmptyMessageAndSheetException = HTTPException(

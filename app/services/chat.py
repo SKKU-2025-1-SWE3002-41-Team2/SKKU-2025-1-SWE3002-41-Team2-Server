@@ -1,29 +1,35 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 from app.exceptions.http_exceptions import SessionNotFoundException, EmptyMessageAndSheetException, \
     UserNotFoundException
 from app.models import ChatSession, Message, ChatSheet, User
-from typing import cast, List
+from typing import cast, List, Optional, Any
 
-from app.schemas.chat import ChatSessionCreateRequest
+from app.schemas.chat import ChatSessionCreateRequest, MessageRequest
 from app.schemas.llm import LLMResponse
+from app.utils.timezone import KST
 
 """
 Interface Summary:
-- def get_sessions_by_user(userId: int, db: Session) -> List[ChatSession]
-- def create_session_or_add_message(data: ChatSessionCreateRequest, db: Session) -> ChatSession:
+- def get_sessions(userId: int, db: Session) -> List[ChatSession]
+- def create_session(data: ChatSessionCreateRequest, db: Session) -> ChatSession:
 - def delete_session(sessionId: int, db: Session) -> None
+- def modify_session(sessionId: int, newName: str, db: Session) -> ChatSession
+- def save_message_and_response(sessionId: int, data: MessageRequest, db: Session) -> LLMResponse
+
+Helper Summary:
+- def insert_message_to_db(sessionId: int, content: str, senderType: str, db: Session) -> Message
+- def upsert_chat_sheet(sessionId: int, sheetData: Optional[Any], db: Session) -> ChatSheet
+- def validate_user_exists(userId: int, db: Session) -> None
+- def update_session_summary(sessionId: int, summary: str, db: Session) -> None 
+- def touch_session(sessionId: int, db: Session)
 """
-"""
-todo 
-채팅방 이름 수정
-채팅방 삭제 기능(포함된 채팅까지 전부삭제)
-
-채팅 히스토리 로딩 
-"""
 
 
 
-def get_sessions_by_user(userId: int, db: Session) -> List[ChatSession]:
+### read only ###
+def get_sessions(userId: int, db: Session) -> List[ChatSession]:
     sessions = (
         db.query(ChatSession)
         .filter(ChatSession.userId == userId)
@@ -36,7 +42,14 @@ def get_sessions_by_user(userId: int, db: Session) -> List[ChatSession]:
 
     return cast(List[ChatSession], sessions)
 
-def create_session_or_add_message(data: ChatSessionCreateRequest, db: Session) -> LLMResponse:
+def get_messages(session_id: int, db: Session) -> ChatSession:
+    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not session:
+        raise SessionNotFoundException
+    return session
+
+### modify data ###
+def create_session(data: ChatSessionCreateRequest, db: Session) -> LLMResponse:
     if not data.message and not data.sheetData:
         raise EmptyMessageAndSheetException
 
@@ -45,41 +58,27 @@ def create_session_or_add_message(data: ChatSessionCreateRequest, db: Session) -
     message_to_ask = None
     sheet_to_ask = None
 
-
     session = ChatSession(userId=data.userId, name="New Session")
     db.add(session)
     db.flush()
 
     if data.message:
-        add_message(
-            session_id=session.id,
+        insert_message_to_db(
+            sessionId=session.id,
             content=data.message,
-            sender_type="USER",
+            senderType="USER",
             db=db
         )
         message_to_ask = data.message
 
-    existing_sheet = db.query(ChatSheet).filter(ChatSheet.sessionId == session.id).first()
-
-    sheet_data = data.sheetData or []
-
-    if existing_sheet:
-        existing_sheet.sheetData = sheet_data
-        sheet_to_ask = existing_sheet
-    else:
-        sheet = ChatSheet(
-            sessionId=session.id,
-            sheetData=sheet_data
-        )
-        db.add(sheet)
-        sheet_to_ask = sheet
-
-
-
+    # sheet 생성 or 저장
+    sheet_to_ask = upsert_chat_sheet(session.id, data.sheetData, db)
 
     # TODO : llm response
-    # llm service에서 text와 xlsx를 받아서
+    # llmservice(message_to_ask, sheet_to_ask, session.summary)
+    # llm service에서 chat content, xlsx(json), summary
     # db에 저장 후 리턴
+    # update_session_summary(session.id, #result.summary, db)
 
     db.commit()
     return LLMResponse(
@@ -91,15 +90,95 @@ def create_session_or_add_message(data: ChatSessionCreateRequest, db: Session) -
         ]
     )
 
-def add_message(session_id: int, content: str, sender_type: str, db: Session) -> Message:
-    message = Message(
-        sessionId=session_id,
-        content=content,
-        senderType=sender_type
+def delete_session(sessionId: int, db: Session) -> None:
+    session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
+    if not session:
+        raise SessionNotFoundException
+
+    db.delete(session)
+    db.commit()
+
+def modify_session(sessionId: int, newName: str, db: Session) -> ChatSession:
+    session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
+    if not session:
+        raise SessionNotFoundException
+
+    session.name = newName
+    db.commit()
+    db.refresh(session)
+    return session
+
+def save_message_and_response(sessionId: int, data: MessageRequest, db: Session) -> LLMResponse:
+    # 1. 메시지 저장
+    message = insert_message_to_db(
+        sessionId=sessionId,
+        content=data.content,
+        senderType="USER",
+        db=db
     )
+
+    # 2. 시트 저장 또는 업데이트
+    # FIX : sheet 저장을 llm에서 나온 결과물로 저장할 수 있음
+    sheet = upsert_chat_sheet(sessionId, data.sheetData, db)
+
+
+    # llm service 호출
+    #
+    # update_session_summary(session.id, #result.summary, db)
+
+
+
+    db.commit()
+    db.refresh(message)
+
+    return LLMResponse(
+        chat="test chat",
+        sheetData=[
+            ["Name", "Age", "Job"],
+            ["Alice", 30, "Engineer"],
+            ["Bob", 25, "Designer"]
+        ]
+    )
+
+#### helper ####
+def insert_message_to_db(sessionId: int, content: str, senderType: str, db: Session) -> Message:
+    message = Message(
+        sessionId=sessionId,
+        content=content,
+        senderType=senderType
+    )
+    touch_session(sessionId, db)
     db.add(message)
     return message
 
-def validate_user_exists(user_id: int, db: Session) -> None:
-    if not db.query(User).filter(User.id == user_id).first():
+def upsert_chat_sheet(sessionId: int, sheetData: Optional[Any], db: Session) -> ChatSheet:
+    sheet = db.query(ChatSheet).filter(ChatSheet.sessionId == sessionId).first()
+
+    if sheet:
+        if sheetData is not None:
+            sheet.sheetData = sheetData
+        # else: sheetData가 None이면 그대로 유지
+    else:
+        sheet = ChatSheet(
+            sessionId=sessionId,
+            sheetData=sheetData if sheetData is not None else []
+        )
+        db.add(sheet)
+
+    return sheet
+
+def update_session_summary(sessionId: int, summary: str, db: Session) -> None:
+    session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
+    if not session:
+        raise SessionNotFoundException
+
+    session.summary = summary
+
+def validate_user_exists(userId: int, db: Session) -> None:
+    if not db.query(User).filter(User.id == userId).first():
         raise UserNotFoundException
+
+def touch_session(sessionId: int, db: Session):
+    session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
+    if session:
+        session.modifiedAt = datetime.now(KST)

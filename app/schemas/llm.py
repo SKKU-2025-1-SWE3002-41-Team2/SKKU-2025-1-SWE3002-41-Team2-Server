@@ -7,3 +7,7 @@ class LLMResponse(BaseModel):
 
     class Config:
         from_attributes = True
+class LLMResultInternal(BaseModel):
+    chat: str
+    sheetData: Any
+    summary: str
