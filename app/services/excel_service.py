@@ -51,16 +51,17 @@ class ExcelService:
     def _apply_formula(self, worksheet, command: ExcelCommand):
         """수식 적용 - 단순화된 버전"""
         # 수식에 사용할 범위
-        formula_range = command.parameters.get('range', command.target_range)
-        formula_type = command.command_type.upper()
+        formula_range = command.parameters.get('range', command.target_range) # 예: "A1:A10"
+        formula_type = command.command_type.upper() # 예: "SUM", "AVERAGE" 등
 
         # 엑셀 수식 생성 및 직접 할당
-        formula = f"={formula_type}({formula_range})"
-        worksheet[command.target_range] = formula
+        formula = f"={formula_type}({formula_range})" #formula 변수가 "=SUM(A1:A10)"와 같은 형태로 설정됨
+        worksheet[command.target_range] = formula # 수식이 적용될 셀에 직접 할당
 
     def _apply_format(self, worksheet, command: ExcelCommand):
         """서식 적용 - 범위에 대해 처리"""
         # 단일 셀 또는 범위 처리
+        # command.command_type는 CommandType 클래스의 값 중 하나로, 예: "BOLD", "ITALIC" 등
         if ':' in command.target_range:
             # 범위인 경우
             for row in worksheet[command.target_range]:
@@ -68,7 +69,7 @@ class ExcelService:
                     self._format_cell(cell, command)
         else:
             # 단일 셀인 경우
-            cell = worksheet[command.target_range]
+            cell = worksheet[command.target_range] #워크 시트에서 타겟이되는 셀 객체 가져오기
             self._format_cell(cell, command)
 
     def _format_cell(self, cell, command: ExcelCommand):

@@ -10,11 +10,13 @@ from app.services.excel_commands import CommandType
 
 
 # Structured Output을 위한 Pydantic 모델
+# 이 모델은 OpenAI의 Structured Output 기능을 사용하여
+# 명령어 시퀀스를 정의하는 데 사용됩니다.
 class ExcelCommandOutput(BaseModel):
     """엑셀 명령어 출력 구조"""
-    command_type: str = Field(description="명령어 타입")
+    command_type: str = Field(description="명령어 타입") # 예: "sum", "bold", "font_color"
     target_range: str = Field(description="대상 셀 범위 (예: A1:B10)")
-    parameters: Dict[str, Any] = Field(default_factory=dict, description="명령어 파라미터")
+    parameters: Dict[str, Any] = Field(default_factory=dict, description="명령어 파라미터") # 예: {"color": "FF0000"} 또는 {"range": "A1:A10"}
 
 
 class LLMResponseOutput(BaseModel):
@@ -70,13 +72,13 @@ class LLMExcelService:
 
         # 4. OpenAI Structured Output 사용
         completion = self.client.beta.chat.completions.parse(
-            model="gpt-4-1106-preview",
+            model="gpt-4.1",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             response_format=LLMResponseOutput,
-            temperature=0.7
+            temperature=0.7 # (온도 조절: 0.7은 적당한 창의성)
         )
 
         # 5. 응답 파싱
@@ -98,6 +100,9 @@ class LLMExcelService:
             parsed_response.response
         )
 
+        # 8. 엑셀 명령어 실행
+        # 인수인계 파일에서 이전에 설명한 excel_service.execute_command 메서드를 사용하여
+        # 각 명령어를 실행합니다.
         return LLMExcelResponse(
             response=parsed_response.response,
             updated_summary=updated_summary,
