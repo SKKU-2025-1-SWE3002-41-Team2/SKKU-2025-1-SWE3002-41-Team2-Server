@@ -23,6 +23,7 @@ class LLMResponseOutput(BaseModel):
     """LLM 응답 출력 구조"""
     response: str = Field(description="사용자에게 보여줄 한국어 응답")
     commands: List[ExcelCommandOutput] = Field(description="실행할 엑셀 명령어 시퀀스")
+    summary: str = Field(description="이번 응답의 내용을 반영한 갱신된 요약")
 
 
 class LLMExcelService:
@@ -39,9 +40,8 @@ class LLMExcelService:
 
     def process_excel_command(
             self,
-            history_summary: str,
             user_command: str,
-            session_summary: str,
+            summary: str,
             excel_bytes: bytes
     ) -> LLMExcelResponse:
         """
@@ -64,9 +64,8 @@ class LLMExcelService:
 
         # 3. 사용자 프롬프트 구성
         user_prompt = self._create_user_prompt(
-            history_summary,
+            summary,
             user_command,
-            session_summary,
             excel_context
         )
 
@@ -94,18 +93,14 @@ class LLMExcelService:
             ))
 
         # 7. 채팅 요약 업데이트
-        updated_summary = self._update_summary(
-            session_summary,
-            user_command,
-            parsed_response.response
-        )
+
 
         # 8. 엑셀 명령어 실행
         # 인수인계 파일에서 이전에 설명한 excel_service.execute_command 메서드를 사용하여
         # 각 명령어를 실행합니다.
         return LLMExcelResponse(
             response=parsed_response.response,
-            updated_summary=updated_summary,
+            updated_summary=summary,
             excel_func_sequence=commands
         )
 
@@ -172,7 +167,7 @@ class LLMExcelService:
 2. 색상은 16진수 6자리로 표현 (예: "FF0000" = 빨간색, "0000FF" = 파란색)
 3. 명령어는 실행 순서를 고려하여 논리적으로 배치
 4. 수식 명령의 경우 parameters에 'range' 키로 계산 범위 지정
-
+5. summary는 입력받은 summary와 이번 응답에서의 엑셀 시퀀스를 통한 변경점을 반영해 갱신해서 응답
 예시:
 - B2:B10의 합계를 B11에 표시: command_type="sum", target_range="B11", parameters={"range": "B2:B10"}
 - A1 셀을 굵게: command_type="bold", target_range="A1", parameters={}
@@ -182,17 +177,16 @@ class LLMExcelService:
 
     def _create_user_prompt(
             self,
-            history_summary: str,
+            summary: str,
             user_command: str,
-            session_summary: str,
             excel_context: str
     ) -> str:
         """사용자의 명령과 현재 상황을 포함한 프롬프트"""
         return f"""이전 대화 요약:
-{history_summary}
+
 
 현재 세션 요약:
-{session_summary}
+{summary}
 
 현재 엑셀 파일 상태:
 {excel_context}
@@ -202,30 +196,3 @@ class LLMExcelService:
 
 위 정보를 바탕으로 사용자의 명령을 수행하기 위한 엑셀 명령어 시퀀스를 생성하고,
 사용자에게 친절한 한국어 응답을 작성해주세요."""
-
-    def _update_summary(
-            self,
-            session_summary: str,
-            user_command: str,
-            ai_response: str
-    ) -> str:
-        """
-        채팅 요약 업데이트 (1000자 이하 유지)
-
-        기존 요약에 새로운 대화 내용을 추가하고,
-        1000자를 초과하면 오래된 내용부터 제거
-        """
-        # 타임스탬프 추가
-        timestamp = datetime.now().strftime("%H:%M")
-        new_content = f"\n[{timestamp}] 사용자: {user_command[:100]}..."
-        new_content += f"\n[{timestamp}] AI: {ai_response[:100]}..."
-
-        # 기존 요약과 합치기
-        updated = session_summary + new_content
-
-        # 1000자 제한
-        if len(updated) > 1000:
-            # 최신 997자만 유지 (... 포함)
-            updated = "..." + updated[-997:]
-
-        return updated
