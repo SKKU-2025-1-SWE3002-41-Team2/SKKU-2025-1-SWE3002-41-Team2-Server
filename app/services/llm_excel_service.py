@@ -4,9 +4,9 @@ from datetime import datetime
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
-from schemas.excel_schemas import LLMExcelResponse, ExcelCommand
-from services.excel_service import ExcelService
-from models.excel_commands import CommandType
+from app.schemas.excel_schemas import LLMExcelResponse, ExcelCommand
+from app.services.excel_service import ExcelService
+from app.services.excel_commands import CommandType
 
 
 # Structured Output을 위한 Pydantic 모델
