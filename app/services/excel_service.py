@@ -4,8 +4,8 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 
-from schemas.excel_schemas import ExcelCommand
-from services.excel_commands import CommandType, ExcelCommandMapping
+from app.schemas.excel_schemas import ExcelCommand
+from app.services.excel_commands import CommandType, ExcelCommandMapping
 
 class ExcelService:
     """엑셀 파일 처리 서비스"""
