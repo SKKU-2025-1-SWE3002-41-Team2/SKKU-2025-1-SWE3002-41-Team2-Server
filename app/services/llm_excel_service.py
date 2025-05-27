@@ -13,11 +13,9 @@ from app.services.excel_commands import CommandType
 # 이 모델은 OpenAI의 Structured Output 기능을 사용하여
 # 명령어 시퀀스를 정의하는 데 사용됩니다.
 class ExcelCommandOutput(BaseModel):
-    """엑셀 명령어 출력 구조"""
-    command_type: str = Field(description="명령어 타입") # 예: "sum", "bold", "font_color"
+    command_type: str = Field(description="명령어 타입")
     target_range: str = Field(description="대상 셀 범위 (예: A1:B10)")
-    parameters: Dict[str, Any] = Field(default_factory=dict, description="명령어 파라미터") # 예: {"color": "FF0000"} 또는 {"range": "A1:A10"}
-
+    parameters: Optional[Dict[str, Any]] = Field(default={}, description="명령어 파라미터")
 
 class LLMResponseOutput(BaseModel):
     """LLM 응답 출력 구조"""
@@ -100,7 +98,7 @@ class LLMExcelService:
         # 각 명령어를 실행합니다.
         return LLMExcelResponse(
             response=parsed_response.response,
-            updated_summary=summary,
+            updated_summary=parsed_response.summary or "",
             excel_func_sequence=commands
         )
 

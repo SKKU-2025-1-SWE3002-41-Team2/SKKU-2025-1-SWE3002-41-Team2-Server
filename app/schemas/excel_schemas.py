@@ -13,7 +13,7 @@ class ExcelCommand(BaseModel):
     """엑셀 명령어 스키마"""
     command_type: str     # 명령어 타입 (function, format, data)
     target_range: str     # 대상 셀 범위 (예: A1:B10)
-    parameters: Dict[str,]  # 명령어 파라미터
+    parameters: Dict[str, Any]  # 명령어 파라미터
 
 class LLMExcelResponse(BaseModel):
     """LLM 응답 스키마"""

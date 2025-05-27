@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -8,6 +9,8 @@ from typing import cast, List, Optional, Any
 
 from app.schemas.chat import ChatSessionCreateRequest, MessageRequest
 from app.schemas.llm import LLMResponse
+from app.services.excel_service import ExcelService
+from app.services.llm_excel_service import LLMExcelService
 from app.utils.timezone import KST
 
 """
@@ -80,14 +83,30 @@ def create_session(data: ChatSessionCreateRequest, db: Session) -> LLMResponse:
     # db에 저장 후 리턴
     # update_session_summary(session.id, #result.summary, db)
 
+    json_str = json.dumps(sheet_to_ask.sheetData)
+
+    # 2. bytes로 인코딩 (UTF-8 권장)
+    json_bytes = json_str.encode("utf-8")
+
+    llm_service = LLMExcelService()
+    res = llm_service.process_excel_command(
+    user_command="A1에서 A10까지 숫자를 1~10까지 넣고 모두 더한걸 B1에 넣어줘",
+    summary=session.summary,
+    excel_bytes=json_bytes
+    )
+
+    excel_service = ExcelService()
+    modified_bytes = excel_service.execute_command_sequence(
+        excel_bytes=json_bytes,
+        commands=res.excel_func_sequence
+    )
+
+    st = excel_service.load_excel_from_bytes(modified_bytes)
+
     db.commit()
     return LLMResponse(
-        chat="test chat",
-        sheetData=[
-            ["Name", "Age", "Job"],
-            ["Alice", 30, "Engineer"],
-            ["Bob", 25, "Designer"]
-        ]
+        chat=res.response,
+        sheetData=st
     )
 
 def delete_session(sessionId: int, db: Session) -> None:
