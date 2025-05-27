@@ -74,9 +74,10 @@ def create_session(data: ChatSessionCreateRequest, db: Session) -> LLMResponse:
         )
         message_to_ask = data.message
 
+    print("1")
     # sheet 생성 or 저장
     sheet_to_ask = upsert_chat_sheet(session.id, data.sheetData, db)
-
+    print("2")
     # TODO : llm response
     # llmservice(message_to_ask, sheet_to_ask, session.summary)
     # llm service에서 chat content, xlsx(json), summary
@@ -87,26 +88,30 @@ def create_session(data: ChatSessionCreateRequest, db: Session) -> LLMResponse:
 
     # 2. bytes로 인코딩 (UTF-8 권장)
     json_bytes = json_str.encode("utf-8")
-
+    print("3")
     llm_service = LLMExcelService()
     res = llm_service.process_excel_command(
     user_command="A1에서 A10까지 숫자를 1~10까지 넣고 모두 더한걸 B1에 넣어줘",
     summary=session.summary,
     excel_bytes=json_bytes
     )
-
+    print("4")
     excel_service = ExcelService()
     modified_bytes = excel_service.execute_command_sequence(
         excel_bytes=json_bytes,
         commands=res.excel_func_sequence
     )
-
+    print("5")
     st = excel_service.load_excel_from_bytes(modified_bytes)
-
+    print(st)
+    print("6")
     db.commit()
     return LLMResponse(
-        chat=res.response,
-        sheetData=st
+        chat="aaa",
+        sheetData={
+            "sheet_name": "Sheet1",
+            "data": {}
+          }
     )
 
 def delete_session(sessionId: int, db: Session) -> None:

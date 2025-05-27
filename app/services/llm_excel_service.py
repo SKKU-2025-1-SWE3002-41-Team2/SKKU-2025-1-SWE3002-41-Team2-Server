@@ -66,7 +66,7 @@ class LLMExcelService:
             user_command,
             excel_context
         )
-
+        print("in 1")
         # 4. OpenAI Structured Output 사용
         completion = self.client.beta.chat.completions.parse(
             model="gpt-4.1",
@@ -75,9 +75,10 @@ class LLMExcelService:
                 {"role": "user", "content": user_prompt}
             ],
             response_format=LLMResponseOutput,
+            max_tokens=4096,
             temperature=0.7 # (온도 조절: 0.7은 적당한 창의성)
         )
-
+        print("in 2")
         # 5. 응답 파싱
         parsed_response = completion.choices[0].message.parsed
 
@@ -166,6 +167,7 @@ class LLMExcelService:
 3. 명령어는 실행 순서를 고려하여 논리적으로 배치
 4. 수식 명령의 경우 parameters에 'range' 키로 계산 범위 지정
 5. summary는 입력받은 summary와 이번 응답에서의 엑셀 시퀀스를 통한 변경점을 반영해 갱신해서 응답
+6. summary는 갱신해서 1000자 이하로 응답
 예시:
 - B2:B10의 합계를 B11에 표시: command_type="sum", target_range="B11", parameters={"range": "B2:B10"}
 - A1 셀을 굵게: command_type="bold", target_range="A1", parameters={}
