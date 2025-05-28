@@ -15,13 +15,48 @@ from app.services.excel_commands import CommandType
 class ExcelCommandOutput(BaseModel):
     command_type: str = Field(description="명령어 타입")
     target_range: str = Field(description="대상 셀 범위 (예: A1:B10)")
-    parameters: Optional[Dict[str, Any]] = Field(default={}, description="명령어 파라미터")
+    parameters: Dict[str, Any] = Field(description="명령어 파라미터")
+
 
 class LLMResponseOutput(BaseModel):
     """LLM 응답 출력 구조"""
     response: str = Field(description="사용자에게 보여줄 한국어 응답")
     commands: List[ExcelCommandOutput] = Field(description="실행할 엑셀 명령어 시퀀스")
     summary: str = Field(description="이번 응답의 내용을 반영한 갱신된 요약")
+
+
+def get_openai_friendly_schema():
+    return {
+        "name": "LLMResponseOutput",  # ✅ 이름
+        "schema": {                   # ✅ 실제 스키마 내용
+            "type": "object",
+            "title": "LLMResponseOutput",
+            "properties": {
+                "response": {
+                    "type": "string",
+                    "description": "사용자에게 보여줄 한국어 응답"
+                },
+                "commands": {
+                    "type": "array",
+                    "description": "실행할 엑셀 명령어 시퀀스",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "command_type": {"type": "string", "description": "명령어 타입"},
+                            "target_range": {"type": "string", "description": "대상 셀 범위 (예: A1:B10)"},
+                            "parameters": {"type": "object", "description": "명령어 파라미터"}
+                        },
+                        "required": ["command_type", "target_range", "parameters"]
+                    }
+                },
+                "summary": {
+                    "type": "string",
+                    "description": "이번 응답의 내용을 반영한 갱신된 요약"
+                }
+            },
+            "required": ["response", "commands", "summary"]
+        }
+    }
 
 
 class LLMExcelService:
@@ -35,6 +70,8 @@ class LLMExcelService:
 
         self.client = OpenAI(api_key=api_key)
         self.excel_service = ExcelService()
+
+
 
     def process_excel_command(
             self,
@@ -74,13 +111,19 @@ class LLMExcelService:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            response_format=LLMResponseOutput,
-            max_tokens=4096,
+            response_format={"type": "json_schema", "json_schema": get_openai_friendly_schema()},
+            max_tokens=1 << 15,
             temperature=0.7 # (온도 조절: 0.7은 적당한 창의성)
         )
         print("in 2")
+        print("✅ 프롬프트 토큰:", completion.usage.prompt_tokens)
+        print("✅ 응답 토큰:", completion.usage.completion_tokens)
+        print("✅ 총 토큰:", completion.usage.total_tokens)
+
         # 5. 응답 파싱
         parsed_response = completion.choices[0].message.parsed
+        print("💬 GPT 원문 응답:", completion.choices[0].message.content)
+        print("🔎 Parsed 결과:", parsed_response)
 
         # 6. ExcelCommand 객체로 변환
         commands = []
@@ -168,6 +211,11 @@ class LLMExcelService:
 4. 수식 명령의 경우 parameters에 'range' 키로 계산 범위 지정
 5. summary는 입력받은 summary와 이번 응답에서의 엑셀 시퀀스를 통한 변경점을 반영해 갱신해서 응답
 6. summary는 갱신해서 1000자 이하로 응답
+7. 모든 명령어는 `parameters` 필드를 반드시 포함해야 합니다.
+- 파라미터가 필요한 명령어는 실제 키-값 쌍을 입력합니다.
+- 파라미터가 필요 없는 명령어는 다음을 사용해 의미를 명시합니다:
+    - `{"note": "no parameters needed"}`
+ 
 예시:
 - B2:B10의 합계를 B11에 표시: command_type="sum", target_range="B11", parameters={"range": "B2:B10"}
 - A1 셀을 굵게: command_type="bold", target_range="A1", parameters={}

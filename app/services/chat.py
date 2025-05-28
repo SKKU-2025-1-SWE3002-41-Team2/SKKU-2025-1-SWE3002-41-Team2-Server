@@ -52,7 +52,7 @@ def get_messages(session_id: int, db: Session) -> ChatSession:
     return session
 
 ### modify data ###
-def create_session(data: ChatSessionCreateRequest, db: Session) -> LLMResponse:
+def create_session(data: Any, db: Session) -> LLMResponse:
     if not data.message and not data.sheetData:
         raise EmptyMessageAndSheetException
 
@@ -83,22 +83,19 @@ def create_session(data: ChatSessionCreateRequest, db: Session) -> LLMResponse:
     # llm service에서 chat content, xlsx(json), summary
     # db에 저장 후 리턴
     # update_session_summary(session.id, #result.summary, db)
-
-    json_str = json.dumps(sheet_to_ask.sheetData)
-
-    # 2. bytes로 인코딩 (UTF-8 권장)
-    json_bytes = json_str.encode("utf-8")
     print("3")
+
     llm_service = LLMExcelService()
     res = llm_service.process_excel_command(
-    user_command="A1에서 A10까지 숫자를 1~10까지 넣고 모두 더한걸 B1에 넣어줘",
+    user_command="A1에서 A10까지 1~10을 차례로 넣고 A1~A10 더한걸 B1에 넣어줘",
     summary=session.summary,
-    excel_bytes=json_bytes
+    excel_bytes=sheet_to_ask.sheetData
     )
     print("4")
     excel_service = ExcelService()
+    eb = excel_service.convert_json_to_excel_bytes(sheet_to_ask.sheetData)
     modified_bytes = excel_service.execute_command_sequence(
-        excel_bytes=json_bytes,
+        excel_bytes=eb,
         commands=res.excel_func_sequence
     )
     print("5")
@@ -185,7 +182,7 @@ def upsert_chat_sheet(sessionId: int, sheetData: Optional[Any], db: Session) -> 
     else:
         sheet = ChatSheet(
             sessionId=sessionId,
-            sheetData=sheetData if sheetData is not None else []
+            sheetData=sheetData if sheetData is not None else b""  # 빈 바이트
         )
         db.add(sheet)
 

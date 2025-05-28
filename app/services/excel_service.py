@@ -15,7 +15,23 @@ class ExcelService:
 
     def load_excel_from_bytes(self, excel_bytes: bytes) -> Workbook:
         """바이트 데이터에서 엑셀 워크북 로드"""
-        return load_workbook(io.BytesIO(excel_bytes))
+
+    def convert_json_to_excel_bytes(sheet_json: dict) -> bytes:
+        wb = Workbook()
+        ws = wb.active
+        ws.title = sheet_json.get("sheet_name", "Sheet1")
+
+        data = sheet_json.get("data", {})
+
+        for row_key, row_values in data.items():
+            row_index = int(row_key.replace("row_", ""))
+            for col_index, value in enumerate(row_values, start=1):
+                ws.cell(row=row_index, column=col_index, value=value)
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        return output.getvalue()
 
     def save_excel_to_bytes(self, workbook: Workbook) -> bytes:
         """워크북을 바이트 데이터로 저장"""

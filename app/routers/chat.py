@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Form, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import get_db_session
 from app.schemas.chat import *
@@ -29,7 +29,27 @@ def get_sessions_route(userId: int = Query(...), db: Session = Depends(get_db_se
         400: {"description": "Either message or sheetData must be provided."},
     }
 )
-def create_session_route(data: ChatSessionCreateRequest, db: Session = Depends(get_db_session)):
+async def create_session_route(
+    userId: int = Form(...),
+    message: Optional[str] = Form(None),
+    sheetData: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db_session)
+):
+    if message is None and sheetData is None:
+        raise HTTPException(status_code=400, detail="Either message or sheetData must be provided.")
+
+    # sheetData를 byte로 읽기
+    file_bytes = await sheetData.read() if sheetData is not None else None
+
+    # 임시 구조체 (BaseModel 대체)
+    class TempData:
+        def __init__(self, userId, message, sheetData):
+            self.userId = userId
+            self.message = message
+            self.sheetData = sheetData
+
+    data = TempData(userId, message, file_bytes)
+
     res = create_session(data, db)
     return res
 
