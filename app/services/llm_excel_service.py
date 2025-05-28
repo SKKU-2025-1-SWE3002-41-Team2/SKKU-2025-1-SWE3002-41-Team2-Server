@@ -218,7 +218,7 @@ class LLMExcelService:
  
 예시:
 - B2:B10의 합계를 B11에 표시: command_type="sum", target_range="B11", parameters={"range": "B2:B10"}
-- A1 셀을 굵게: command_type="bold", target_range="A1", parameters={}
+- A1 셀을 굵게: command_type="bold", target_range="A1", parameters={"note": "no parameters needed"}
 - C1:C5를 빨간색으로: command_type="font_color", target_range="C1:C5", parameters={"color": "FF0000"}
 
 응답은 항상 친절하고 명확한 한국어로 작성하세요."""

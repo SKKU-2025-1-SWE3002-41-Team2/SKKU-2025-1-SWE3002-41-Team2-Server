@@ -14,8 +14,8 @@ class ChatSessionResponse(BaseModel):
     class Config:
         from_attributes  = True
 
-class ChatSessionCreateRequest(BaseModel):
-    userId: int
+class ChatSessionCreateResponse(BaseModel):
+    sessionId: int
     message: Optional[str] = None
     sheetData: Optional[Any] = None
 
@@ -31,11 +31,6 @@ class MessageResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-class MessageRequest(BaseModel):
-    content: str
-    sheetData: Optional[Any] = None
-
 
 
 class ChatSessionWithMessagesResponse(BaseModel):

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status, Form, UploadFile, File
+from fastapi import APIRouter, Depends, Query, status, Form, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import get_db_session
+from app.exceptions.http_exceptions import EmptyMessageAndSheetException
 from app.schemas.chat import *
 from app.schemas.llm import LLMResponse
-from app.services.chat import get_sessions, create_session, create_session, \
+from app.services.chat import get_sessions, create_session, \
     delete_session, modify_session, get_messages, save_message_and_response
 
 router = APIRouter()
@@ -21,7 +22,7 @@ def get_sessions_route(userId: int = Query(...), db: Session = Depends(get_db_se
 
 @router.post(
     "/sessions/create",
-    response_model=LLMResponse,
+    response_model=ChatSessionCreateResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a session or add message/sheet",
     responses={
@@ -36,22 +37,34 @@ async def create_session_route(
     db: Session = Depends(get_db_session)
 ):
     if message is None and sheetData is None:
-        raise HTTPException(status_code=400, detail="Either message or sheetData must be provided.")
+        raise EmptyMessageAndSheetException
 
     # sheetData를 byte로 읽기
     file_bytes = await sheetData.read() if sheetData is not None else None
 
-    # 임시 구조체 (BaseModel 대체)
-    class TempData:
-        def __init__(self, userId, message, sheetData):
-            self.userId = userId
-            self.message = message
-            self.sheetData = sheetData
+    return create_session(userId, message, file_bytes, db)
 
-    data = TempData(userId, message, file_bytes)
+@router.post(
+    "/sessions/{sessionId}/message",
+    summary="Save user message and sheet data, get LLM response",
+    response_model=LLMResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Message saved and LLM response returned"},
+        404: {"description": "Chat session not found"},
+        400: {"description": "Invalid message or sheet data"},
+    }
+)
+async def send_message_route(
+    sessionId: int,
+    message: str = Form(...),
+    sheetData: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db_session)
+):
+    # sheetData를 bytes로 읽음
+    file_bytes = await sheetData.read() if sheetData is not None else None
 
-    res = create_session(data, db)
-    return res
+    return save_message_and_response(sessionId, message, file_bytes, db)
 
 @router.delete(
     "/sessions/{sessionId}",
@@ -97,20 +110,3 @@ def get_session_messages_route(sessionId: int, db: Session = Depends(get_db_sess
         messages=session.messages
     )
 
-@router.post(
-    "/sessions/{sessionId}/message",
-    summary="Save user message and sheet data, get LLM response",
-    response_model=LLMResponse,
-    status_code=status.HTTP_200_OK,
-    responses={
-        200: {"description": "Message saved and LLM response returned"},
-        404: {"description": "Chat session not found"},
-        400: {"description": "Invalid message or sheet data"},
-    }
-)
-def save_message_route(
-    sessionId: int,
-    data: MessageRequest,
-    db: Session = Depends(get_db_session)
-):
-    return save_message_and_response(sessionId, data, db)
