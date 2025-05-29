@@ -8,6 +8,8 @@ from typing import cast, List, Optional, Any
 
 from app.schemas.chat import ChatSessionCreateRequest, MessageRequest
 from app.schemas.llm import LLMResponse
+from app.services.llm import get_llm_response
+from app.services.excel import process_excel_with_commands
 from app.utils.timezone import KST
 
 """
@@ -121,11 +123,23 @@ def save_message_and_response(sessionId: int, data: MessageRequest, db: Session)
     # FIX : sheet 저장을 llm에서 나온 결과물로 저장할 수 있음
     sheet = upsert_chat_sheet(sessionId, data.sheetData, db)
 
-
+    summary = get_session_summary(sessionId, db)
     # llm service 호출
-    #
-    # update_session_summary(session.id, #result.summary, db)
+    # 리턴값은 LLMResultInternal
+    result = get_llm_response(
+        session_summary=session.summary,
+        user_command=message.content,
+        excel_bytes=sheet.sheetData
+    )
 
+    # 엑셀 파일 수정
+    modified_excel_bytes = process_excel_with_commands(
+        excel_bytes=sheet.sheetData,
+        commands=result.sheetData  # ExcelCommand 리스트
+    )
+
+    # 수정된 엑셀 파일을 DB에 저장
+    upsert_chat_sheet(session.id, modified_excel_bytes, db)
 
 
     db.commit()
@@ -173,6 +187,13 @@ def update_session_summary(sessionId: int, summary: str, db: Session) -> None:
         raise SessionNotFoundException
 
     session.summary = summary
+
+def get_session_summary(sessionId: int, db: Session) -> Optional[str]:
+    # 세션의 요약을 가져오는 함수
+    session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
+    if not session:
+        raise SessionNotFoundException
+    return session.summary
 
 def validate_user_exists(userId: int, db: Session) -> None:
     if not db.query(User).filter(User.id == userId).first():

@@ -9,5 +9,5 @@ class LLMResponse(BaseModel):
         from_attributes = True
 class LLMResultInternal(BaseModel):
     chat: str
-    sheetData: Any
+    cmd_seq: Any
     summary: str
