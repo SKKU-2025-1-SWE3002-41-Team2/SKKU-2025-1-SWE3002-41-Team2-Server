@@ -20,7 +20,7 @@ from app.services.llm_prompt import (
 )
 
 # 타입 힌트를 위한 임포트
-from app.schemas.excel_schemas import ExcelCommand
+from app.schemas.excel import ExcelCommand
 
 
 class LLMService:
