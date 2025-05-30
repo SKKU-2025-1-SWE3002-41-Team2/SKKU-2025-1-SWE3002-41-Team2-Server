@@ -1,9 +1,10 @@
+import base64
+
 from fastapi import APIRouter, Depends, Query, status, Form, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import get_db_session
 from app.exceptions.http_exceptions import EmptyMessageAndSheetException
 from app.schemas.chat import *
-from app.schemas.llm import LLMResponse
 from app.services.chat import get_sessions, create_session, \
     delete_session, modify_session, get_messages, save_message_and_response
 
@@ -101,6 +102,12 @@ def update_session_route(sessionId: int, req: ChatSessionUpdateRequest, db: Sess
 )
 def get_session_messages_route(sessionId: int, db: Session = Depends(get_db_session)):
     session = get_messages(sessionId, db)
+
+    # sheet가 존재하면 base64 인코딩 수행
+    encoded_sheet = (
+        base64.b64encode(session.sheet.sheetData).decode('utf-8')
+        if session.sheet else None
+    )
     return ChatSessionWithMessagesResponse(
         sessionId=session.id,
         userId=session.userId,

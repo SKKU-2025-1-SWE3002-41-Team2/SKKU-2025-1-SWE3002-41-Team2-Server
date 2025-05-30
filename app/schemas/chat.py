@@ -14,15 +14,6 @@ class ChatSessionResponse(BaseModel):
     class Config:
         from_attributes  = True
 
-class ChatSessionCreateResponse(BaseModel):
-    sessionId: int
-    message: Optional[str] = None
-    sheetData: Optional[Any] = None
-
-class ChatSessionUpdateRequest(BaseModel):
-    name: str  # 수정할 제목
-
-
 class MessageResponse(BaseModel):
     id: int
     createdAt: datetime
@@ -32,6 +23,24 @@ class MessageResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ChatSessionCreateResponse(BaseModel):
+    sessionId: int
+    sessionName: str
+    sheetData: Any
+    message : MessageResponse
+
+class ChatSessionUpdateRequest(BaseModel):
+    name: str  # 수정할 제목
+
+
+
+
+class LLMResponse(BaseModel):
+    sheetData: Any
+    message: MessageResponse
+
+    class Config:
+        from_attributes = True
 
 class ChatSessionWithMessagesResponse(BaseModel):
     sessionId: int

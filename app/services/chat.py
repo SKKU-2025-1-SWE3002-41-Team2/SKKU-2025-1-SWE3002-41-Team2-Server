@@ -8,8 +8,7 @@ from app.exceptions.http_exceptions import SessionNotFoundException, EmptyMessag
 from app.models import ChatSession, Message, ChatSheet, User
 from typing import cast, List, Optional, Any
 
-from app.schemas.chat import ChatSessionCreateResponse
-from app.schemas.llm import LLMResponse
+from app.schemas.chat import ChatSessionCreateResponse, LLMResponse, MessageResponse
 from app.services.excel_service import ExcelService
 from app.services.llm_excel_service import LLMExcelService
 from app.utils.timezone import KST
@@ -64,8 +63,9 @@ def create_session(userId: int, message: str, sheetData: bytes, db: Session) -> 
 
     return ChatSessionCreateResponse(
         sessionId=session.id,
-        message=res.message,
-        sheetData=res.sheetData
+        sessionName=session.name,
+        sheetData =res.sheetData,
+        message=res.message
     )
 
 def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db: Session) -> LLMResponse:
@@ -99,7 +99,7 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
     )
 
     # ✅ 5. AI의 응답 메시지를 DB에 저장 (AI)
-    insert_message_to_db(
+    aiMessage= insert_message_to_db(
         sessionId=sessionId,
         content=res.response,
         senderType="AI",
@@ -123,8 +123,13 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
     encoded_sheet = base64.b64encode(modified_sheet).decode('utf-8')
 
     return LLMResponse(
-        chat=res.response,
-        sheetData=b""  # FIXME: encoded_sheet로 바꿔야 정상 작동
+        sheetData=b"",  # FIXME: encoded_sheet로 바꿔야 정상 작동
+        message = MessageResponse(
+            id= aiMessage.id,
+            content=aiMessage.content,
+            createdAt=aiMessage.createdAt,
+            senderType=aiMessage.senderType
+        )
     )
 
 
@@ -156,6 +161,7 @@ def insert_message_to_db(sessionId: int, content: str, senderType: str, db: Sess
         senderType=senderType
     )
     touch_session(sessionId, db)
+    db.flush()
     db.add(message)
     return message
 
