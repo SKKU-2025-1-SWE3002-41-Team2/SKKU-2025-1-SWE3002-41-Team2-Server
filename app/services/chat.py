@@ -128,7 +128,7 @@ def save_message_and_response(sessionId: int, data: MessageRequest, db: Session)
     # 리턴값은 ResponseResult
     response_result = get_llm_response(
         #chat_session의 summary를 가져오도록 구현 필요
-        session_summary=session.summary,
+        session_summary=summary,
         user_command=message.content,
         excel_bytes=sheet.sheetData
     )
@@ -143,7 +143,7 @@ def save_message_and_response(sessionId: int, data: MessageRequest, db: Session)
     upsert_chat_sheet(session.id, modified_excel_bytes, db)
 
     # 3. 세션 요약 업데이트
-    #update_session_summary(sessionId, response_result.summary, db)
+    update_session_summary(sessionId, response_result.summary, db)
 
     db.commit()
     db.refresh(message)
