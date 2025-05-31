@@ -182,7 +182,7 @@ class ExcelManipulator:
 
 def process_excel_with_commands(
         excel_bytes: bytes,
-        commands: List[ExcelCommand]
+        commands: Any
 ) -> bytes:
     """
     엑셀 파일에 명령어를 적용하고 결과를 반환합니다.

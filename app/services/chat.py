@@ -125,8 +125,9 @@ def save_message_and_response(sessionId: int, data: MessageRequest, db: Session)
 
     summary = get_session_summary(sessionId, db)
     # llm service 호출
-    # 리턴값은 LLMResultInternal
-    result = get_llm_response(
+    # 리턴값은 ResponseResult
+    response_result = get_llm_response(
+        #chat_session의 summary를 가져오도록 구현 필요
         session_summary=session.summary,
         user_command=message.content,
         excel_bytes=sheet.sheetData
@@ -135,23 +136,21 @@ def save_message_and_response(sessionId: int, data: MessageRequest, db: Session)
     # 엑셀 파일 수정
     modified_excel_bytes = process_excel_with_commands(
         excel_bytes=sheet.sheetData,
-        commands=result.sheetData  # ExcelCommand 리스트
+        commands=response_result.cmd_seq  # ExcelCommand 리스트
     )
 
     # 수정된 엑셀 파일을 DB에 저장
     upsert_chat_sheet(session.id, modified_excel_bytes, db)
 
+    # 3. 세션 요약 업데이트
+    #update_session_summary(sessionId, response_result.summary, db)
 
     db.commit()
     db.refresh(message)
 
     return LLMResponse(
-        chat="test chat",
-        sheetData=[
-            ["Name", "Age", "Job"],
-            ["Alice", 30, "Engineer"],
-            ["Bob", 25, "Designer"]
-        ]
+        chat=response_result.chat,
+        sheetData=modified_excel_bytes
     )
 
 #### helper ####

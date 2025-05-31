@@ -11,7 +11,7 @@ import io
 
 from openpyxl import load_workbook
 
-from app.schemas.llm import LLMResultInternal
+from app.schemas.llm import LLMResultInternal, ResponseResult
 from app.services.llm_prompt import (
     SYSTEM_PROMPT,
     RESPONSE_SCHEMA,
@@ -45,7 +45,7 @@ class LLMService:
             user_command: str,
             excel_bytes: bytes,
             session_summary: Optional[str] = None
-    ) -> LLMResultInternal:
+    ) -> ResponseResult:
         """
         사용자의 명령을 받아 LLM으로 처리하고 결과를 반환합니다.
 
@@ -55,7 +55,7 @@ class LLMService:
             session_summary: 이전 대화 요약 (옵션)
 
         Returns:
-            LLMResultInternal: LLM 응답 결과 (chat, cmd_seq, summary)
+            ResponseResult: LLM 응답 결과 (chat, cmd_seq, summary)
         """
         # 1. 엑셀 파일 분석하여 컨텍스트 생성
         excel_context = self._analyze_excel_context(excel_bytes)
@@ -78,18 +78,18 @@ class LLMService:
             excel_commands = self._convert_to_excel_commands(parsed_response["commands"])
 
             # 6. 결과 반환
-            return LLMResultInternal(
+            return ResponseResult(
                 chat=parsed_response["response"],
-                sheetData=excel_commands,  # ExcelCommand 객체 리스트를 그대로 반환
+                cmd_seq=excel_commands,  # ExcelCommand 객체 리스트를 그대로 반환
                 summary=parsed_response["summary"]
             )
 
         except Exception as e:
             print(f"LLM 처리 중 오류 발생: {str(e)}")
             # 에러 발생시 기본 응답 반환
-            return LLMResultInternal(
+            return ResponseResult(
                 chat="죄송합니다. 명령을 처리하는 중 오류가 발생했습니다. 다시 시도해주세요.",
-                sheetData=[],
+                cmd_seq=[],
                 summary=session_summary or ""
             )
 
@@ -292,7 +292,7 @@ def get_llm_response(
         user_command: str,
         excel_bytes: bytes,
         session_summary: Optional[str] = None
-) -> LLMResultInternal:
+) -> ResponseResult:
     """
     LLM 서비스의 진입점 함수
 
