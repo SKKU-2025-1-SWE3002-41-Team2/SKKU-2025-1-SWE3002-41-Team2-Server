@@ -140,7 +140,7 @@ def save_message_and_response(sessionId: int, data: MessageRequest, db: Session)
     )
 
     # 수정된 엑셀 파일을 DB에 저장
-    upsert_chat_sheet(session.id, modified_excel_bytes, db)
+    upsert_chat_sheet(sessionId, modified_excel_bytes, db)
 
     # 3. 세션 요약 업데이트
     update_session_summary(sessionId, response_result.summary, db)
