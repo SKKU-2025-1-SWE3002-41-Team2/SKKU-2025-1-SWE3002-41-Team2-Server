@@ -12,6 +12,7 @@ import io
 from openpyxl import load_workbook
 
 from app.schemas.llm import LLMResultInternal, ResponseResult
+from app.services.excel import create_empty_excel
 from app.services.llm_prompt import (
     SYSTEM_PROMPT,
     RESPONSE_SCHEMA,
@@ -177,7 +178,7 @@ class LLMService:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ],
-            response_format=RESPONSE_SCHEMA,  # llm_prompt.py에서 가져온 스키마 사용
+            text_format=RESPONSE_SCHEMA,  # llm_prompt.py에서 가져온 스키마 사용
             temperature=0.7,
             #max_tokens=32768,  # 최대 토큰 수
         )

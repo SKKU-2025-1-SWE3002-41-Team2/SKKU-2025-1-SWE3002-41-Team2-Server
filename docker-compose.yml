@@ -5,11 +5,13 @@ services:
     container_name: excel-mysql
     ports:
       - "3306:3306"  # 3307에서 3306으로 변경
+
     environment:
       MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: excel_platform
       MYSQL_USER: excel
       MYSQL_PASSWORD: 1234
+
       # 모든 IP에서 접근 허용
       MYSQL_ALLOW_EMPTY_PASSWORD: "no"
     command: --default-authentication-plugin=mysql_native_password --bind-address=0.0.0.0
