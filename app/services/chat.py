@@ -8,10 +8,12 @@ from app.exceptions.http_exceptions import SessionNotFoundException, EmptyMessag
 from app.models import ChatSession, Message, ChatSheet, User
 from typing import cast, List, Optional, Any
 
-from app.schemas.chat import ChatSessionCreateRequest, MessageRequest
-from app.schemas.llm import LLMResponse
+from app.schemas.chat import ChatSessionCreateResponse, MessageResponse, LLMResponse
+
+from app.services.excel_service import ExcelService
 from app.services.llm import get_llm_response
 from app.services.excel import process_excel_with_commands
+from app.services.llm_excel_service import LLMExcelService
 from app.utils.timezone import KST
 
 """
@@ -86,23 +88,24 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
     # ✅ 3. LLM을 호출하여 명령어 해석 및 응답 생성
     # FIXIT: 아래 user_command는 하드코딩되어 있어 나중에 실제 메시지로 대체 필요
     llm_service = LLMExcelService()
-    res = llm_service.process_excel_command(
-        user_command="A1에서 A10까지 1~10을 차례로 넣고 A1~A10 더한걸 B1에 넣어줘",  # <- message로 바꿔야 함
-        summary=session.summary,
-        excel_bytes=sheetData
+    response_result = get_llm_response(
+        #chat_session의 summary를 가져오도록 구현 필요
+        session_summary=session.summary,
+        user_command=message,
+        excel_bytes =sheetData
     )
 
     # ✅ 4. LLM이 생성한 명령어 시퀀스를 바탕으로 엑셀 수정
     excel_service = ExcelService()
     modified_sheet = excel_service.execute_command_sequence(
         excel_bytes=sheetData,
-        commands=res.excel_func_sequence
+        commands=response_result.excel_func_sequence
     )
 
     # ✅ 5. AI의 응답 메시지를 DB에 저장 (AI)
     aiMessage= insert_message_to_db(
         sessionId=sessionId,
-        content=res.response,
+        content=response_result.response,
         senderType="AI",
         db=db
     )
@@ -110,7 +113,7 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
     # ✅ 6. 세션 요약 업데이트
     update_session_summary(
         sessionId=sessionId,
-        summary=res.updated_summary,
+        summary=response_result.updated_summary,
         db=db
     )
 

@@ -1,7 +1,6 @@
-from typing import Any
+from typing import Any, Dict
 
-import Any
-import Dict
+from pydantic import BaseModel
 
 
 class ExcelCommand (BaseModel):
