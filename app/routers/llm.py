@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import openai
 
 
-loaddotenv()
+load_dotenv()
 
 async def process_natural_language_command(command: str) -> str:
     api_key = os.getenv("LLM_API_KEY")

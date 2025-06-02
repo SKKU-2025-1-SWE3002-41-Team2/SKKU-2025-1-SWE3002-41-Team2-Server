@@ -1,6 +1,6 @@
-from fastapi import FastAPI
-from app.database import init_db
 from dotenv import load_dotenv
+from .database import init_db
+from fastapi import FastAPI
 
 load_dotenv()
 import os
@@ -18,3 +18,6 @@ app.include_router(api_router, prefix="/api")
 def health_check():
     return {"status": "ok"}
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
