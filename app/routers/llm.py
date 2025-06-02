@@ -11,27 +11,13 @@ import json
 import io
 from openpyxl import Workbook
 
+from app.schemas.test import CommandSequenceTestResponse, CommandSequenceTestRequest
 from app.services.llm import get_llm_response
 from app.services.excel import process_excel_with_commands, create_empty_excel
 from app.schemas.excel import ExcelCommand
 from typing import List
 
 router = APIRouter()
-load_dotenv()
-
-class CommandSequenceTestRequest(BaseModel):
-    """명령어 시퀀스 테스트 요청 스키마"""
-    commands: List[Dict[str, Any]]  # 실행할 명령어 시퀀스
-    initial_data: Optional[List[List[Any]]] = None  # 초기 데이터 (선택사항)
-
-class CommandSequenceTestResponse(BaseModel):
-    """명령어 시퀀스 테스트 응답 스키마"""
-    success: bool  # 성공 여부
-    message: str  # 결과 메시지
-    initial_data: List[List[Any]]  # 초기 데이터
-    final_data: List[List[Any]]  # 최종 데이터
-    executed_commands: List[Dict[str, Any]]  # 실행된 명령어들
-    errors: List[str]  # 오류 메시지들
 
 
 # 요청/응답 스키마 정의
