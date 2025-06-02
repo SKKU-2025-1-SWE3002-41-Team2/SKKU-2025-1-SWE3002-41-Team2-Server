@@ -11,10 +11,8 @@ from typing import cast, List, Optional, Any
 from app.routers.llm import _excel_bytes_to_json
 from app.schemas.chat import ChatSessionCreateResponse, MessageResponse, LLMResponse
 
-from app.services.excel_service import ExcelService
 from app.services.llm import get_llm_response
 from app.services.excel import process_excel_with_commands
-from app.services.llm_excel_service import LLMExcelService
 from app.utils.timezone import KST
 
 """
@@ -88,7 +86,6 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
 
     # ✅ 3. LLM을 호출하여 명령어 해석 및 응답 생성
     # FIXIT: 아래 user_command는 하드코딩되어 있어 나중에 실제 메시지로 대체 필요
-    llm_service = LLMExcelService()
     response_result = get_llm_response(
         #chat_session의 summary를 가져오도록 구현 필요
         session_summary=session.summary,
