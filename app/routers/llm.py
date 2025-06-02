@@ -14,8 +14,23 @@ from openpyxl import Workbook
 from app.services.llm import get_llm_response
 from app.services.excel import process_excel_with_commands, create_empty_excel
 from app.schemas.excel import ExcelCommand
+from typing import List
 
 router = APIRouter()
+
+class CommandSequenceTestRequest(BaseModel):
+    """명령어 시퀀스 테스트 요청 스키마"""
+    commands: List[Dict[str, Any]]  # 실행할 명령어 시퀀스
+    initial_data: Optional[List[List[Any]]] = None  # 초기 데이터 (선택사항)
+
+class CommandSequenceTestResponse(BaseModel):
+    """명령어 시퀀스 테스트 응답 스키마"""
+    success: bool  # 성공 여부
+    message: str  # 결과 메시지
+    initial_data: List[List[Any]]  # 초기 데이터
+    final_data: List[List[Any]]  # 최종 데이터
+    executed_commands: List[Dict[str, Any]]  # 실행된 명령어들
+    errors: List[str]  # 오류 메시지들
 
 
 # 요청/응답 스키마 정의
@@ -346,3 +361,238 @@ def _excel_bytes_to_json(excel_bytes: bytes) -> List[List[Any]]:
         data.append(row_data)
 
     return data
+
+
+# 기존 엔드포인트들 아래에 새로운 엔드포인트 추가
+@router.post(
+    "/test/command-sequence",
+    response_model=CommandSequenceTestResponse,
+    summary="명령어 시퀀스 직접 테스트",
+    description="JSON 형태의 명령어 시퀀스를 직접 입력받아 실행하고 결과를 확인합니다."
+)
+async def test_command_sequence(request: CommandSequenceTestRequest):
+    """
+    명령어 시퀀스를 직접 테스트합니다.
+
+    이 엔드포인트는 다음을 수행합니다:
+    1. 빈 엑셀 파일 또는 제공된 초기 데이터로 엑셀 생성
+    2. 각 명령어를 순차적으로 실행
+    3. 각 단계에서 발생한 오류 수집
+    4. 최종 결과를 JSON으로 반환
+
+    Example request:
+    ```json
+    {
+        "commands": [
+            {
+                "command_type": "set_value",
+                "target_range": "A1",
+                "parameters": {"value": "이름"}
+            },
+            {
+                "command_type": "set_value",
+                "target_range": "B1",
+                "parameters": {"value": "점수"}
+            },
+            {
+                "command_type": "bold",
+                "target_range": "A1:B1",
+                "parameters": {}
+            }
+        ]
+    }
+    ```
+    """
+    errors = []
+    executed_commands = []
+
+    try:
+        # 1. 초기 엑셀 파일 생성
+        if request.initial_data:
+            # 제공된 초기 데이터로 엑셀 생성
+            excel_bytes = _json_to_excel_bytes(request.initial_data)
+            initial_data = request.initial_data
+        else:
+            # 빈 엑셀 파일 생성
+            excel_bytes = create_empty_excel()
+            initial_data = [[]]  # 빈 데이터
+
+        # 2. 명령어 시퀀스를 ExcelCommand 객체로 변환
+        excel_commands = []
+        for idx, cmd in enumerate(request.commands):
+            try:
+                # 명령어 검증 및 변환
+                if "command_type" not in cmd:
+                    errors.append(f"명령어 {idx + 1}: command_type이 없습니다.")
+                    continue
+
+                if "target_range" not in cmd:
+                    errors.append(f"명령어 {idx + 1}: target_range가 없습니다.")
+                    continue
+
+                # parameters가 없으면 빈 딕셔너리로 설정
+                parameters = cmd.get("parameters", {})
+
+                excel_command = ExcelCommand(
+                    command_type=cmd["command_type"],
+                    target_range=cmd["target_range"],
+                    parameters=parameters
+                )
+                excel_commands.append(excel_command)
+
+                # 실행된 명령어 기록
+                executed_commands.append({
+                    "index": idx + 1,
+                    "command_type": excel_command.command_type,
+                    "target_range": excel_command.target_range,
+                    "parameters": excel_command.parameters,
+                    "status": "prepared"
+                })
+
+            except Exception as e:
+                errors.append(f"명령어 {idx + 1} 변환 오류: {str(e)}")
+                executed_commands.append({
+                    "index": idx + 1,
+                    "command": cmd,
+                    "status": "conversion_failed",
+                    "error": str(e)
+                })
+
+        # 3. 명령어 실행
+        if excel_commands:
+            try:
+                # process_excel_with_commands 함수 사용
+                modified_excel_bytes = process_excel_with_commands(
+                    excel_bytes=excel_bytes,
+                    commands=excel_commands
+                )
+
+                # 실행 상태 업데이트
+                for cmd in executed_commands:
+                    if cmd.get("status") == "prepared":
+                        cmd["status"] = "executed"
+
+            except Exception as e:
+                errors.append(f"명령어 실행 중 오류: {str(e)}")
+                modified_excel_bytes = excel_bytes  # 오류 발생시 원본 유지
+        else:
+            modified_excel_bytes = excel_bytes
+            errors.append("실행할 유효한 명령어가 없습니다.")
+
+        # 4. 결과를 JSON으로 변환
+        final_data = _excel_bytes_to_json(modified_excel_bytes)
+
+        # 5. 응답 생성
+        success = len(errors) == 0
+        message = "명령어 시퀀스가 성공적으로 실행되었습니다." if success else f"{len(errors)}개의 오류가 발생했습니다."
+
+        return CommandSequenceTestResponse(
+            success=success,
+            message=message,
+            initial_data=initial_data,
+            final_data=final_data,
+            executed_commands=executed_commands,
+            errors=errors
+        )
+
+    except Exception as e:
+        return CommandSequenceTestResponse(
+            success=False,
+            message=f"처리 중 오류 발생: {str(e)}",
+            initial_data=[[]],
+            final_data=[[]],
+            executed_commands=executed_commands,
+            errors=[str(e)]
+        )
+
+
+@router.post(
+    "/test/validate-commands",
+    summary="명령어 유효성 검증",
+    description="명령어 시퀀스의 유효성을 검증합니다 (실행하지 않음)."
+)
+async def validate_commands(request: CommandSequenceTestRequest):
+    """
+    명령어 시퀀스의 유효성만 검증합니다.
+    실제로 실행하지는 않고, 각 명령어가 올바른 형식인지 확인합니다.
+    """
+    validation_results = []
+    valid_command_types = [
+        # 함수 관련
+        "sum", "average", "count", "max", "min",
+        # 서식 관련
+        "bold", "italic", "underline",
+        "font_color", "fill_color", "border",
+        "font_size", "font_name",
+        # 데이터 관련
+        "set_value", "clear", "merge", "unmerge",
+        # 정렬 관련
+        "align_left", "align_center", "align_right",
+        "align_top", "align_middle", "align_bottom"
+    ]
+
+    for idx, cmd in enumerate(request.commands):
+        result = {
+            "index": idx + 1,
+            "command": cmd,
+            "valid": True,
+            "errors": []
+        }
+
+        # command_type 검증
+        if "command_type" not in cmd:
+            result["valid"] = False
+            result["errors"].append("command_type이 없습니다.")
+        elif cmd["command_type"] not in valid_command_types:
+            result["valid"] = False
+            result["errors"].append(f"유효하지 않은 command_type: {cmd['command_type']}")
+
+        # target_range 검증
+        if "target_range" not in cmd:
+            result["valid"] = False
+            result["errors"].append("target_range가 없습니다.")
+        else:
+            # 셀 범위 형식 검증 (간단한 정규식)
+            import re
+            cell_pattern = r'^[A-Z]+\d+(?::[A-Z]+\d+)?$'
+            if not re.match(cell_pattern, cmd["target_range"]):
+                result["valid"] = False
+                result["errors"].append(f"유효하지 않은 target_range 형식: {cmd['target_range']}")
+
+        # parameters 검증
+        if "parameters" in cmd:
+            cmd_type = cmd.get("command_type", "")
+            params = cmd["parameters"]
+
+            # 명령어별 파라미터 검증
+            if cmd_type in ["sum", "average", "count", "max", "min"]:
+                if not params.get("range"):
+                    result["errors"].append("수식 명령어는 'range' 파라미터가 필요합니다.")
+                    result["valid"] = False
+            elif cmd_type in ["font_color", "fill_color"]:
+                if not params.get("color"):
+                    result["errors"].append("색상 명령어는 'color' 파라미터가 필요합니다.")
+                    result["valid"] = False
+                elif not re.match(r'^[0-9A-Fa-f]{6}$', params.get("color", "")):
+                    result["errors"].append("색상은 6자리 16진수여야 합니다 (예: FF0000).")
+                    result["valid"] = False
+            elif cmd_type == "set_value":
+                if "value" not in params:
+                    result["errors"].append("set_value 명령어는 'value' 파라미터가 필요합니다.")
+                    result["valid"] = False
+
+        validation_results.append(result)
+
+    # 전체 요약
+    total_commands = len(request.commands)
+    valid_commands = sum(1 for r in validation_results if r["valid"])
+
+    return {
+        "summary": {
+            "total_commands": total_commands,
+            "valid_commands": valid_commands,
+            "invalid_commands": total_commands - valid_commands,
+            "all_valid": valid_commands == total_commands
+        },
+        "validation_results": validation_results
+    }
