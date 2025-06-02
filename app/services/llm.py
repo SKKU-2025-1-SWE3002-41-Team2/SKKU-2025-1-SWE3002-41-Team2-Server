@@ -72,17 +72,17 @@ class LLMService:
         {
             "response": "A1부터 A10까지 1에서 10까지의 숫자를 차례대로 입력한 후, 이 값들의 합계를 B1 셀에 표시하겠습니다.",
             "commands": [
-                {"command_type":"set_value","target_range":"A1","parameters":{"value":1}},
-                {"command_type":"set_value","target_range":"A2","parameters":{"value":2}},
-                {"command_type":"set_value","target_range":"A3","parameters":{"value":3}},
-                {"command_type":"set_value","target_range":"A4","parameters":{"value":4}},
-                {"command_type":"set_value","target_range":"A5","parameters":{"value":5}},
-                {"command_type":"set_value","target_range":"A6","parameters":{"value":6}},
-                {"command_type":"set_value","target_range":"A7","parameters":{"value":7}},
-                {"command_type":"set_value","target_range":"A8","parameters":{"value":8}},
-                {"command_type":"set_value","target_range":"A9","parameters":{"value":9}},
-                {"command_type":"set_value","target_range":"A10","parameters":{"value":10}},
-                {"command_type":"sum","target_range":"B1","parameters":{"range":"A1:A10"}}
+                {"command_type":"set_value","target_range":"A1","parameters":[1]},
+                {"command_type":"set_value","target_range":"A2","parameters":[2]},
+                {"command_type":"set_value","target_range":"A3","parameters":[3]},
+                {"command_type":"set_value","target_range":"A4","parameters":[4]},
+                {"command_type":"set_value","target_range":"A5","parameters":[5]},
+                {"command_type":"set_value","target_range":"A6","parameters":[6]},
+                {"command_type":"set_value","target_range":"A7","parameters":[7]},
+                {"command_type":"set_value","target_range":"A8","parameters":[8]},
+                {"command_type":"set_value","target_range":"A9","parameters":[9]},
+                {"command_type":"set_value","target_range":"A10","parameters":[10]},
+                {"command_type":"sum","target_range":"B1","parameters":["A1:A10"]}
             ],
             "summary": "A1~A10에 각각 1~10까지 값을 입력하고, 이 범위의 합계를 B1에 계산하여 표시했습니다."
         }
