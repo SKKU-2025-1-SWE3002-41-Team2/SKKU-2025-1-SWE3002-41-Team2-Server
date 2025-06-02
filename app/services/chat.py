@@ -73,7 +73,7 @@ def create_session(userId: int, message: str, sheetData: bytes, db: Session) -> 
 
 def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db: Session) -> LLMResponse:
     # ✅ 1. 사용자 메시지를 DB에 저장 (USER)
-    message = insert_message_to_db(
+    saved_message = insert_message_to_db(
         sessionId=sessionId,
         content=message,
         senderType="USER",
