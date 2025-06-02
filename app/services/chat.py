@@ -8,6 +8,7 @@ from app.exceptions.http_exceptions import SessionNotFoundException, EmptyMessag
 from app.models import ChatSession, Message, ChatSheet, User
 from typing import cast, List, Optional, Any
 
+from app.routers.llm import _excel_bytes_to_json
 from app.schemas.chat import ChatSessionCreateResponse, MessageResponse, LLMResponse
 
 from app.services.excel_service import ExcelService
@@ -96,16 +97,14 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
     )
 
     # ✅ 4. LLM이 생성한 명령어 시퀀스를 바탕으로 엑셀 수정
-    excel_service = ExcelService()
-    modified_sheet = excel_service.execute_command_sequence(
+    modified_excel_bytes = process_excel_with_commands(
         excel_bytes=sheetData,
-        commands=response_result.excel_func_sequence
+        commands=response_result.cmd_seq  # ExcelCommand 리스트
     )
-
     # ✅ 5. AI의 응답 메시지를 DB에 저장 (AI)
     aiMessage= insert_message_to_db(
         sessionId=sessionId,
-        content=response_result.response,
+        content=response_result.chat,
         senderType="AI",
         db=db
     )
@@ -113,18 +112,20 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
     # ✅ 6. 세션 요약 업데이트
     update_session_summary(
         sessionId=sessionId,
-        summary=response_result.updated_summary,
+        summary=response_result.summary,
         db=db
     )
 
     # ✅ 7. 수정된 엑셀 데이터를 chat_sheet에 업서트
-    upsert_chat_sheet(sessionId, modified_sheet, db)
+    upsert_chat_sheet(sessionId, modified_excel_bytes, db)
 
     # ✅ 8. 변경사항 모두 커밋
     db.commit()
 
+    tmp = _excel_bytes_to_json(modified_excel_bytes)
+    print(tmp)
     # ✅ 9. 수정된 엑셀 sheet를 base64로 인코딩하여 JSON 응답에 포함
-    encoded_sheet = base64.b64encode(modified_sheet).decode('utf-8')
+    encoded_sheet = base64.b64encode(modified_excel_bytes).decode('utf-8')
 
     return LLMResponse(
         sheetData=b"",  # FIXME: encoded_sheet로 바꿔야 정상 작동
