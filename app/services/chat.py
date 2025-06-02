@@ -1,3 +1,5 @@
+import base64
+import json
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -6,10 +8,12 @@ from app.exceptions.http_exceptions import SessionNotFoundException, EmptyMessag
 from app.models import ChatSession, Message, ChatSheet, User
 from typing import cast, List, Optional, Any
 
-from app.schemas.chat import ChatSessionCreateRequest, MessageRequest
-from app.schemas.llm import LLMResponse
+from app.schemas.chat import ChatSessionCreateResponse, MessageResponse, LLMResponse
+
+from app.services.excel_service import ExcelService
 from app.services.llm import get_llm_response
 from app.services.excel import process_excel_with_commands
+from app.services.llm_excel_service import LLMExcelService
 from app.utils.timezone import KST
 
 """
@@ -51,46 +55,87 @@ def get_messages(session_id: int, db: Session) -> ChatSession:
     return session
 
 ### modify data ###
-def create_session(data: ChatSessionCreateRequest, db: Session) -> LLMResponse:
-    if not data.message and not data.sheetData:
-        raise EmptyMessageAndSheetException
+def create_session(userId: int, message: str, sheetData: bytes, db: Session) -> ChatSessionCreateResponse:
 
-    validate_user_exists(data.userId, db)
+    validate_user_exists(userId, db)
 
-    message_to_ask = None
-    sheet_to_ask = None
-
-    session = ChatSession(userId=data.userId, name="New Session")
+    session = ChatSession(userId=userId, name="New Session")
     db.add(session)
     db.flush()
+    res = save_message_and_response(session.id, message, sheetData, db)
 
-    if data.message:
-        insert_message_to_db(
-            sessionId=session.id,
-            content=data.message,
-            senderType="USER",
-            db=db
-        )
-        message_to_ask = data.message
-
-    # sheet 생성 or 저장
-    sheet_to_ask = upsert_chat_sheet(session.id, data.sheetData, db)
-
-    # TODO : llm response
-    # llmservice(message_to_ask, sheet_to_ask, session.summary)
-    # llm service에서 chat content, xlsx(json), summary
-    # db에 저장 후 리턴
-    # update_session_summary(session.id, #result.summary, db)
-
-    db.commit()
-    return LLMResponse(
-        chat="test chat",
-        sheetData=[
-            ["Name", "Age", "Job"],
-            ["Alice", 30, "Engineer"],
-            ["Bob", 25, "Designer"]
-        ]
+    return ChatSessionCreateResponse(
+        sessionId=session.id,
+        sessionName=session.name,
+        sheetData =res.sheetData,
+        message=res.message
     )
+
+def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db: Session) -> LLMResponse:
+    # ✅ 1. 사용자 메시지를 DB에 저장 (USER)
+    message = insert_message_to_db(
+        sessionId=sessionId,
+        content=message,
+        senderType="USER",
+        db=db
+    )
+
+    # ✅ 2. 세션 정보를 DB에서 조회 (없으면 예외 발생)
+    session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
+    if session is None:
+        raise SessionNotFoundException
+
+    # ✅ 3. LLM을 호출하여 명령어 해석 및 응답 생성
+    # FIXIT: 아래 user_command는 하드코딩되어 있어 나중에 실제 메시지로 대체 필요
+    llm_service = LLMExcelService()
+    response_result = get_llm_response(
+        #chat_session의 summary를 가져오도록 구현 필요
+        session_summary=session.summary,
+        user_command=message,
+        excel_bytes =sheetData
+    )
+
+    # ✅ 4. LLM이 생성한 명령어 시퀀스를 바탕으로 엑셀 수정
+    excel_service = ExcelService()
+    modified_sheet = excel_service.execute_command_sequence(
+        excel_bytes=sheetData,
+        commands=response_result.excel_func_sequence
+    )
+
+    # ✅ 5. AI의 응답 메시지를 DB에 저장 (AI)
+    aiMessage= insert_message_to_db(
+        sessionId=sessionId,
+        content=response_result.response,
+        senderType="AI",
+        db=db
+    )
+
+    # ✅ 6. 세션 요약 업데이트
+    update_session_summary(
+        sessionId=sessionId,
+        summary=response_result.updated_summary,
+        db=db
+    )
+
+    # ✅ 7. 수정된 엑셀 데이터를 chat_sheet에 업서트
+    upsert_chat_sheet(sessionId, modified_sheet, db)
+
+    # ✅ 8. 변경사항 모두 커밋
+    db.commit()
+
+    # ✅ 9. 수정된 엑셀 sheet를 base64로 인코딩하여 JSON 응답에 포함
+    encoded_sheet = base64.b64encode(modified_sheet).decode('utf-8')
+
+    return LLMResponse(
+        sheetData=b"",  # FIXME: encoded_sheet로 바꿔야 정상 작동
+        message = MessageResponse(
+            id= aiMessage.id,
+            content=aiMessage.content,
+            createdAt=aiMessage.createdAt,
+            senderType=aiMessage.senderType
+        )
+    )
+
 
 def delete_session(sessionId: int, db: Session) -> None:
     session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
@@ -110,49 +155,6 @@ def modify_session(sessionId: int, newName: str, db: Session) -> ChatSession:
     db.refresh(session)
     return session
 
-def save_message_and_response(sessionId: int, data: MessageRequest, db: Session) -> LLMResponse:
-    # 1. 메시지 저장
-    message = insert_message_to_db(
-        sessionId=sessionId,
-        content=data.content,
-        senderType="USER",
-        db=db
-    )
-
-    # 2. 시트 저장 또는 업데이트
-    # FIX : sheet 저장을 llm에서 나온 결과물로 저장할 수 있음
-    sheet = upsert_chat_sheet(sessionId, data.sheetData, db)
-
-    summary = get_session_summary(sessionId, db)
-    # 3. llm service 호출
-    # 리턴값은 ResponseResult
-    response_result = get_llm_response(
-        #chat_session의 summary를 가져오도록 구현 필요
-        session_summary=summary,
-        user_command=message.content,
-        excel_bytes=sheet.sheetData
-    )
-
-    # 4. 엑셀 파일 수정
-    modified_excel_bytes = process_excel_with_commands(
-        excel_bytes=sheet.sheetData,
-        commands=response_result.cmd_seq  # ExcelCommand 리스트
-    )
-
-    # 5. 수정된 엑셀 파일을 DB에 저장
-    upsert_chat_sheet(sessionId, modified_excel_bytes, db)
-
-    # 6. 세션 요약 업데이트
-    update_session_summary(sessionId, response_result.summary, db)
-
-    db.commit()
-    db.refresh(message)
-
-    return LLMResponse(
-        chat=response_result.chat,
-        sheetData=modified_excel_bytes
-    )
-
 #### helper ####
 def insert_message_to_db(sessionId: int, content: str, senderType: str, db: Session) -> Message:
     message = Message(
@@ -161,6 +163,7 @@ def insert_message_to_db(sessionId: int, content: str, senderType: str, db: Sess
         senderType=senderType
     )
     touch_session(sessionId, db)
+    db.flush()
     db.add(message)
     return message
 
@@ -174,7 +177,7 @@ def upsert_chat_sheet(sessionId: int, sheetData: Optional[Any], db: Session) -> 
     else:
         sheet = ChatSheet(
             sessionId=sessionId,
-            sheetData=sheetData if sheetData is not None else []
+            sheetData=sheetData if sheetData is not None else b""  # 빈 바이트
         )
         db.add(sheet)
 
@@ -186,13 +189,6 @@ def update_session_summary(sessionId: int, summary: str, db: Session) -> None:
         raise SessionNotFoundException
 
     session.summary = summary
-
-def get_session_summary(sessionId: int, db: Session) -> Optional[str]:
-    # 세션의 요약을 가져오는 함수
-    session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
-    if not session:
-        raise SessionNotFoundException
-    return session.summary
 
 def validate_user_exists(userId: int, db: Session) -> None:
     if not db.query(User).filter(User.id == userId).first():

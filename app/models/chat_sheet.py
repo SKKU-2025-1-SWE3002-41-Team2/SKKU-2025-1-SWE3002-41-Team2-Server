@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, JSON, func
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, JSON, func, LargeBinary
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -12,6 +12,6 @@ class ChatSheet(Base):
         ForeignKey("chat_session.id", ondelete="CASCADE"),
         nullable=False
     )
-    sheetData = Column(JSON, nullable=False)
+    sheetData = Column(LargeBinary, nullable=False)
 
     session = relationship("ChatSession", back_populates="sheet", passive_deletes=True)

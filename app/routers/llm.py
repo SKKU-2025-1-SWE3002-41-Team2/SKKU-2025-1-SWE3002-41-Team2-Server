@@ -17,6 +17,7 @@ from app.schemas.excel import ExcelCommand
 from typing import List
 
 router = APIRouter()
+load_dotenv()
 
 class CommandSequenceTestRequest(BaseModel):
     """명령어 시퀀스 테스트 요청 스키마"""

@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 from dotenv import load_dotenv
-from app.init_data import seed_initial_data
+from .init_data import seed_initial_data
 
 load_dotenv()
 
@@ -38,3 +38,4 @@ def init_db():
 
 def drop_db():
     Base.metadata.drop_all(bind=engine)
+
