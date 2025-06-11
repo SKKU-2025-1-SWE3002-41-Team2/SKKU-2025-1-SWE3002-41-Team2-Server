@@ -90,8 +90,8 @@ class LLMService:
 
         # 3. GPT API 호출
         try:
-            # response = self._call_gpt_api(user_prompt)
-            response = dummy_response
+            response = self._call_gpt_api(user_prompt)
+            # response = dummy_response
             # 4. 응답 파싱 및 검증
             parsed_response = self._parse_gpt_response(response)
 
@@ -172,15 +172,17 @@ class LLMService:
             GPT의 응답 텍스트
         """
         # API 호출
-        completion = self.client.responses.parse(
-            model="gpt-4.1",  # 또는 "gpt-4o" 사용 가능
-            input=  [
+        completion = self.client.chat.completions.create(
+            model="gpt-4.1",
+            messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ],
-            text_format=RESPONSE_SCHEMA,  # llm_prompt.py에서 가져온 스키마 사용
-            temperature=0.7,
-            #max_tokens=32768,  # 최대 토큰 수
+            response_format={
+                "type": "json_schema",
+                "json_schema": RESPONSE_SCHEMA["json_schema"]  # 내부 json_schema만 넘겨야 함
+            },
+            temperature=0.7
         )
 
         response = completion.choices[0].message
@@ -191,7 +193,7 @@ class LLMService:
         #logging
         print(f"GPT 응답: {response.content}")
         # 응답 반환
-        return completion.choices[0].message.content
+        return response.content
 
     def _parse_gpt_response(self, response: str) -> Dict[str, Any]:
         """
@@ -216,14 +218,14 @@ class LLMService:
                     raise ValueError(f"필수 필드 누락: {field}")
 
             # commands가 리스트인지 확인
-            if not isinstance(parsed["commands"], list):
+            if not isinstance(parsed["commands"], Dict):
                 raise ValueError("commands는 리스트여야 합니다")
 
             # 각 명령어 검증
             for cmd in parsed["commands"]:
                 if not all(key in cmd for key in ["command_type", "target_range", "parameters"]):
                     raise ValueError("명령어에 필수 필드가 누락되었습니다")
-                if not isinstance(cmd["parameters"], list):
+                if not isinstance(cmd["parameters"], dict):
                     raise ValueError("parameters는 배열이어야 합니다")
 
             return parsed
@@ -264,51 +266,6 @@ class LLMService:
             excel_commands.append(excel_command)
 
         return excel_commands
-
-    def _convert_parameters_to_dict(self, command_type: str, parameters: List[Any]) -> Dict[str, Any]:
-        """
-        명령어 타입에 따라 parameters 배열을 적절한 딕셔너리로 변환합니다.
-
-        Args:
-            command_type: 명령어 타입
-            parameters: 파라미터 배열
-
-        Returns:
-            파라미터 딕셔너리
-        """
-        # 파라미터가 없는 경우
-        if not parameters:
-            return {}
-
-        # 명령어 타입별 변환 규칙
-        if command_type in ["sum", "average", "count", "max", "min"]:
-            # 수식 함수: 첫 번째 파라미터가 범위
-            return {"range": parameters[0]} if parameters else {}
-
-        elif command_type in ["font_color", "fill_color"]:
-            # 색상 설정: 첫 번째 파라미터가 색상 값
-            return {"color": parameters[0]} if parameters else {}
-
-        elif command_type == "font_size":
-            # 글자 크기: 첫 번째 파라미터가 크기
-            return {"size": int(parameters[0])} if parameters else {}
-
-        elif command_type == "font_name":
-            # 글꼴: 첫 번째 파라미터가 글꼴 이름
-            return {"name": parameters[0]} if parameters else {}
-
-        elif command_type == "border":
-            # 테두리: 스타일 지정 (기본값: thin)
-            return {"style": parameters[0] if parameters else "thin"}
-
-        elif command_type == "set_value":
-            # 값 설정: 첫 번째 파라미터가 값
-            return {"value": parameters[0]} if parameters else {}
-
-        else:
-            # 기타 명령어는 파라미터가 필요 없음
-            return {}
-
 
 # 모듈 레벨 함수로 export
 def get_llm_response(
