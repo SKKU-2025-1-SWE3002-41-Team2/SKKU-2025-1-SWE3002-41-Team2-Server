@@ -113,7 +113,7 @@ def get_session_messages_route(sessionId: int, db: Session = Depends(get_db_sess
         userId=session.userId,
         name=session.name,
         modifiedAt=session.modifiedAt,
-        sheetData=session.sheet.sheetData if session.sheet else None,
+        sheetData=encoded_sheet,
         messages=session.messages
     )
 
