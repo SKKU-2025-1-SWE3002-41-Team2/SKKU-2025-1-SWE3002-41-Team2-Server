@@ -312,41 +312,41 @@ class LLMService:
         if command_type in ["merge", "unmerge", "clear"]:
             return {"range": parameters[0]} if parameters else {}
 
-        # 서식 관련
-        if command_type in ["font_color", "fill_color"]:
-            return {"color": parameters[0]} if parameters else {}
-        if command_type == "font_size":
-            return {"size": int(parameters[0])} if parameters else {}
-        if command_type == "font_name":
-            return {"name": parameters[0]} if parameters else {}
-        if command_type == "border":
-            return {"style": parameters[0]} if parameters else {"style": "thin"}
+        # 조건부 함수
+        if command_type == "countif":
+            if len(parameters) >= 2:
+                return {"range": parameters[0], "criteria": parameters[1]}
+            return {}
 
-        # 텍스트 서식
-        if command_type in ["bold", "italic", "underline"]:
-            return {
-                "range": parameters[0],
-                "enabled": parameters[1] if len(parameters) > 1 else True
-            } if parameters else {}
+        if command_type == "sumif":
+            if len(parameters) >= 2:
+                result = {"range": parameters[0], "criteria": parameters[1]}
+                if len(parameters) >= 3:  # 선택적 sum_range
+                    result["sum_range"] = parameters[2]
+                return result
+            return {}
 
-        # 정렬 (수평)
-        if command_type in ["align_left", "align_center", "align_right"]:
-            return {
-                "range": parameters[0],
-                "horizontal": command_type.replace("align_", "")
-            } if parameters else {}
+        if command_type == "averageif":
+            if len(parameters) >= 2:
+                result = {"range": parameters[0], "criteria": parameters[1]}
+                if len(parameters) >= 3:  # 선택적 avg_range
+                    result["avg_range"] = parameters[2]
+                return result
+            return {}
 
-        # 정렬 (수직)
-        if command_type in ["align_top", "align_middle", "align_bottom"]:
-            vertical_map = {
-                "align_top": "top",
-                "align_middle": "center",
-                "align_bottom": "bottom"
-            }
-            return {
-                "range": parameters[0],
-                "vertical": vertical_map[command_type]
-            } if parameters else {}
+        # 텍스트 처리 함수
+        if command_type in ["trim", "upper", "lower"]:
+            return {"source": parameters[0]}
+
+        if command_type == "substitute":
+            if len(parameters) >= 3:
+                return {
+                    "source": parameters[0],
+                    "old_text": parameters[1],
+                    "new_text": parameters[2],
+                    "Instance_number": parameters[3]
+                }
+            return {}
 
         # 알 수 없는 명령어
         return {}

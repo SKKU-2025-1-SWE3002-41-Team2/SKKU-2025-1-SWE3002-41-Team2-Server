@@ -4,9 +4,10 @@
 openpyxl을 사용하여 엑셀 파일을 직접 조작하는 기능을 제공합니다.
 """
 import io
+from copy import copy
 from typing import List, Any, Optional
 from openpyxl import load_workbook, Workbook
-from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment, Color
 from openpyxl.utils import column_index_from_string
 import re
 
@@ -83,23 +84,6 @@ class ExcelManipulator:
         elif command_type == "min":
             self._apply_min(command)
 
-        # 서식 관련 명령어
-        elif command_type == "bold":
-            self._apply_bold(command)
-        elif command_type == "italic":
-            self._apply_italic(command)
-        elif command_type == "underline":
-            self._apply_underline(command)
-        elif command_type == "font_color":
-            self._apply_font_color(command)
-        elif command_type == "fill_color":
-            self._apply_fill_color(command)
-        elif command_type == "border":
-            self._apply_border(command)
-        elif command_type == "font_size":
-            self._apply_font_size(command)
-        elif command_type == "font_name":
-            self._apply_font_name(command)
 
         # 데이터 관련 명령어
         elif command_type == "set_value":
@@ -111,10 +95,23 @@ class ExcelManipulator:
         elif command_type == "unmerge":
             self._unmerge_cells(command)
 
-        # 정렬 관련 명령어
-        elif command_type in ["align_left", "align_center", "align_right",
-                              "align_top", "align_middle", "align_bottom"]:
-            self._apply_alignment(command)
+        # ----- 조건부 함수 -----
+        elif command_type == "countif":
+            self._apply_countif(command)
+        elif command_type == "sumif":
+            self._apply_sumif(command)
+        elif command_type == "averageif":
+            self._apply_averageif(command)
+
+        # ----- 텍스트 처리 함수 -----
+        elif command_type == "trim":
+            self._apply_trim(command)
+        elif command_type == "upper":
+            self._apply_upper(command)
+        elif command_type == "lower":
+            self._apply_lower(command)
+        elif command_type == "substitute":
+            self._apply_substitute(command)
 
         else:
             print(f"지원하지 않는 명령어: {command_type}")
@@ -155,57 +152,69 @@ class ExcelManipulator:
             formula = f"=MIN({range_str})"
             self.active_sheet[command.target_range] = formula
 
-    # 서식 관련 명령어 구현
-    def _apply_bold(self, command: ExcelCommand) -> None:
-        """굵은 글씨체를 적용합니다."""
-        self._apply_font_style(command.target_range, bold=True)
+    # ──────────────────────────────
+    # 조건부 함수
+    # ──────────────────────────────
+    def _apply_countif(self, command: ExcelCommand) -> None:
+        """COUNTIF 함수를 적용합니다."""
+        if command.parameters and "range" in command.parameters and "criteria" in command.parameters:
+            range_str = command.parameters["range"]
+            criteria = command.parameters["criteria"]
+            formula = f"=COUNTIF({range_str}, {criteria})"
+            self.active_sheet[command.target_range] = formula
 
-    def _apply_italic(self, command: ExcelCommand) -> None:
-        """기울임체를 적용합니다."""
-        self._apply_font_style(command.target_range, italic=True)
+    def _apply_sumif(self, command: ExcelCommand) -> None:
+        """SUMIF 함수를 적용합니다."""
+        if command.parameters and "range" in command.parameters and "criteria" in command.parameters:
+            range_str = command.parameters["range"]
+            criteria = command.parameters["criteria"]
+            sum_range = command.parameters.get("sum_range", range_str)
+            formula = f"=SUMIF({range_str}, {criteria}, {sum_range})"
+            self.active_sheet[command.target_range] = formula
 
-    def _apply_underline(self, command: ExcelCommand) -> None:
-        """밑줄을 적용합니다."""
-        self._apply_font_style(command.target_range, underline='single')
+    def _apply_averageif(self, command: ExcelCommand) -> None:
+        """AVERAGEIF 함수를 적용합니다."""
+        if command.parameters and "range" in command.parameters and "criteria" in command.parameters:
+            range_str = command.parameters["range"]
+            criteria = command.parameters["criteria"]
+            avg_range = command.parameters.get("avg_range", range_str)
+            formula = f"=AVERAGEIF({range_str}, {criteria}, {avg_range})"
+            self.active_sheet[command.target_range] = formula
 
-    def _apply_font_color(self, command: ExcelCommand) -> None:
-        """글자 색상을 적용합니다."""
-        if command.parameters and "color" in command.parameters:
-            color = command.parameters["color"]
-            self._apply_font_style(command.target_range, color=color)
+    # ──────────────────────────────
+    # 텍스트 처리 함수
+    # ──────────────────────────────
+    def _apply_trim(self, command: ExcelCommand) -> None:
+        """TRIM 함수를 적용합니다."""
+        if command.parameters and "source" in command.parameters:
+            source = command.parameters["source"]
+            formula = f"=TRIM({source})"
+            self.active_sheet[command.target_range] = formula
 
-    def _apply_fill_color(self, command: ExcelCommand) -> None:
-        """배경색을 적용합니다."""
-        if command.parameters and "color" in command.parameters:
-            color = command.parameters["color"]
-            fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
-            self._apply_to_range(command.target_range, lambda cell: setattr(cell, 'fill', fill))
+    def _apply_upper(self, command: ExcelCommand) -> None:
+        """UPPER 함수를 적용합니다."""
+        if command.parameters and "source" in command.parameters:
+            source = command.parameters["source"]
+            formula = f"=UPPER({source})"
+            self.active_sheet[command.target_range] = formula
 
-    def _apply_border(self, command: ExcelCommand) -> None:
-        """테두리를 적용합니다."""
-        style = "thin"  # 기본값
-        if command.parameters and "style" in command.parameters:
-            style = command.parameters["style"]
+    def _apply_lower(self, command: ExcelCommand) -> None:
+        """LOWER 함수를 적용합니다."""
+        if command.parameters and "source" in command.parameters:
+            source = command.parameters["source"]
+            formula = f"=LOWER({source})"
+            self.active_sheet[command.target_range] = formula
 
-        border = Border(
-            left=Side(style=style),
-            right=Side(style=style),
-            top=Side(style=style),
-            bottom=Side(style=style)
-        )
-        self._apply_to_range(command.target_range, lambda cell: setattr(cell, 'border', border))
+    def _apply_substitute(self, command: ExcelCommand) -> None:
+        """SUBSTITUTE 함수를 적용합니다."""
+        if command.parameters and {"source", "old_text", "new_text", "instance_number"} <= command.parameters.keys():
+            source = command.parameters["source"]
+            old_text = command.parameters["old_text"]
+            new_text = command.parameters["new_text"]
+            instance_number = command.parameters["instance_number"]
+            formula = f"=SUBSTITUTE({source}, {old_text}, {new_text}, {instance_number})"
+            self.active_sheet[command.target_range] = formula
 
-    def _apply_font_size(self, command: ExcelCommand) -> None:
-        """글자 크기를 적용합니다."""
-        if command.parameters and "size" in command.parameters:
-            size = int(command.parameters["size"])
-            self._apply_font_style(command.target_range, size=size)
-
-    def _apply_font_name(self, command: ExcelCommand) -> None:
-        """글꼴을 적용합니다."""
-        if command.parameters and "name" in command.parameters:
-            font_name = command.parameters["name"]
-            self._apply_font_style(command.target_range, name=font_name)
 
     # 데이터 관련 명령어 구현
     def _set_value(self, command: ExcelCommand) -> None:
@@ -232,65 +241,41 @@ class ExcelManipulator:
         """셀 병합을 해제합니다."""
         self.active_sheet.unmerge_cells(command.target_range)
 
-    # 정렬 관련 명령어 구현
-    def _apply_alignment(self, command: ExcelCommand) -> None:
-        """정렬을 적용합니다."""
-        command_type = command.command_type.lower()
-
-        # 현재 정렬 설정을 가져옴
-        def apply_align(cell):
-            current = cell.alignment.copy() if cell.alignment else Alignment()
-
-            if command_type == "align_left":
-                cell.alignment = Alignment(horizontal='left', vertical=current.vertical)
-            elif command_type == "align_center":
-                cell.alignment = Alignment(horizontal='center', vertical=current.vertical)
-            elif command_type == "align_right":
-                cell.alignment = Alignment(horizontal='right', vertical=current.vertical)
-            elif command_type == "align_top":
-                cell.alignment = Alignment(horizontal=current.horizontal, vertical='top')
-            elif command_type == "align_middle":
-                cell.alignment = Alignment(horizontal=current.horizontal, vertical='center')
-            elif command_type == "align_bottom":
-                cell.alignment = Alignment(horizontal=current.horizontal, vertical='bottom')
-
-        self._apply_to_range(command.target_range, apply_align)
-
     # 헬퍼 메서드
-    def _apply_font_style(self, target_range: str, **kwargs) -> None:
-        """폰트 스타일을 적용하는 헬퍼 메서드"""
+#    def _apply_font_style(self, target_range: str, **kwargs) -> None:
+#        """폰트 스타일을 적용하는 헬퍼 메서드"""
+#
+#        def apply_font(cell):
+#            current_font = cell.font.__copy__() if cell.font else Font()
+#
+#            # 현재 폰트의 속성을 유지하면서 새로운 속성만 업데이트
+#            font_dict = {
+#                'name': current_font.name,
+#                'size': current_font.size,
+#                'bold': current_font.bold,
+#                'italic': current_font.italic,
+#                'underline': current_font.underline,
+#                'color': current_font.color
+#            }
+#
+#            # kwargs로 전달된 속성만 업데이트
+#            font_dict.update(kwargs)
+#
+#            cell.font = Font(**font_dict)
+#
+#        self._apply_to_range(target_range, apply_font)
 
-        def apply_font(cell):
-            current_font = cell.font.__copy__() if cell.font else Font()
-
-            # 현재 폰트의 속성을 유지하면서 새로운 속성만 업데이트
-            font_dict = {
-                'name': current_font.name,
-                'size': current_font.size,
-                'bold': current_font.bold,
-                'italic': current_font.italic,
-                'underline': current_font.underline,
-                'color': current_font.color
-            }
-
-            # kwargs로 전달된 속성만 업데이트
-            font_dict.update(kwargs)
-
-            cell.font = Font(**font_dict)
-
-        self._apply_to_range(target_range, apply_font)
-
-    def _apply_to_range(self, target_range: str, func) -> None:
-        """범위의 모든 셀에 함수를 적용하는 헬퍼 메서드"""
-        if ":" in target_range:
-            # 범위인 경우
-            for row in self.active_sheet[target_range]:
-                for cell in row:
-                    func(cell)
-        else:
-            # 단일 셀인 경우
-            cell = self.active_sheet[target_range]
-            func(cell)
+#    def _apply_to_range(self, target_range: str, func) -> None:
+#        """범위의 모든 셀에 함수를 적용하는 헬퍼 메서드"""
+#        if ":" in target_range:
+#            # 범위인 경우
+#            for row in self.active_sheet[target_range]:
+#                for cell in row:
+#                    func(cell)
+#        else:
+#            # 단일 셀인 경우
+#            cell = self.active_sheet[target_range]
+#            func(cell)
 
     def _parse_range(self, range_str: str) -> tuple:
         """
