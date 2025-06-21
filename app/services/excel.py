@@ -109,24 +109,6 @@ class ExcelManipulator:
             formula = f'=MATCH({p["lookup_value"]}, {p["lookup_array"]}, {p["match_type"]})'
             self.active_sheet[command.target_range] = formula
 
-        # 서식 관련 명령어
-        elif command_type == "bold":
-            self._apply_bold(command)
-        elif command_type == "italic":
-            self._apply_italic(command)
-        elif command_type == "underline":
-            self._apply_underline(command)
-        elif command_type == "font_color":
-            self._apply_font_color(command)
-        elif command_type == "fill_color":
-            self._apply_fill_color(command)
-        elif command_type == "border":
-            self._apply_border(command)
-        elif command_type == "font_size":
-            self._apply_font_size(command)
-        elif command_type == "font_name":
-            self._apply_font_name(command)
-
         # 데이터 관련 명령어
         elif command_type == "set_value":
             self._set_value(command)
@@ -247,6 +229,7 @@ class ExcelManipulator:
             avg_range = command.parameters.get("avg_range", range_str)
             formula = f"=AVERAGEIF({range_str}, {criteria}, {avg_range})"
             self.active_sheet[command.target_range] = formula
+
     def _apply_if(self, command: ExcelCommand) -> None:
         c = command.parameters
         formula = f'=IF({c["condition"]}, "{c["true_value"]}", "{c["false_value"]}")'
@@ -257,16 +240,6 @@ class ExcelManipulator:
         joined = ",".join(conditions)
         formula = f"={func_name.upper()}({joined})"
         self.active_sheet[command.target_range] = formula
-
-
-    # 서식 관련 명령어 구현
-    def _apply_bold(self, command: ExcelCommand) -> None:
-        """굵은 글씨체를 적용합니다."""
-        self._apply_font_style(command.target_range, bold=True)
-
-    def _apply_italic(self, command: ExcelCommand) -> None:
-        """기울임체를 적용합니다."""
-        self._apply_font_style(command.target_range, italic=True)
 
     # ──────────────────────────────
     # 텍스트 처리 함수

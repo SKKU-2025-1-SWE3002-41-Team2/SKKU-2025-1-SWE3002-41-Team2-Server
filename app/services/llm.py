@@ -380,6 +380,7 @@ class LLMService:
             if len(parameters) >= 3:
                 result["order"] = parameters[2]
             return result
+
         # 조건부 함수
         if command_type == "countif":
             if len(parameters) >= 2:
@@ -416,7 +417,6 @@ class LLMService:
                 }
             return {}
 
-        # 알 수 없는 명령어
         if command_type in ["concatenate", "&"]:
             # 여러 인수를 그대로 넘깁니다
             return {"values": parameters} if parameters else {}
