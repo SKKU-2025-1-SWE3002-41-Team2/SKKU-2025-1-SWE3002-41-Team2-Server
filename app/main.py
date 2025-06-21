@@ -1,10 +1,23 @@
 from dotenv import load_dotenv
 from .database import init_db
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+
+
 
 load_dotenv()
 import os
 app = FastAPI(title="Excel-LLM Platform")
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # 프론트엔드 주소 (필요시 로 허용)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # DB 초기화 (옵션)
 init_db()
@@ -19,4 +32,4 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=9092)
