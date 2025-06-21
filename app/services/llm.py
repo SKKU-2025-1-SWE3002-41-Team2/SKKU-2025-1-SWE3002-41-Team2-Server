@@ -68,30 +68,9 @@ class LLMService:
             excel_context=excel_context
         )
 
-        dummy_response = """
-        {
-            "response": "A1부터 A10까지 1에서 10까지의 숫자를 차례대로 입력한 후, 이 값들의 합계를 B1 셀에 표시하겠습니다.",
-            "commands": [
-                {"command_type":"set_value","target_range":"A1","parameters":[1]},
-                {"command_type":"set_value","target_range":"A2","parameters":[2]},
-                {"command_type":"set_value","target_range":"A3","parameters":[3]},
-                {"command_type":"set_value","target_range":"A4","parameters":[4]},
-                {"command_type":"set_value","target_range":"A5","parameters":[5]},
-                {"command_type":"set_value","target_range":"A6","parameters":[6]},
-                {"command_type":"set_value","target_range":"A7","parameters":[7]},
-                {"command_type":"set_value","target_range":"A8","parameters":[8]},
-                {"command_type":"set_value","target_range":"A9","parameters":[9]},
-                {"command_type":"set_value","target_range":"A10","parameters":[10]},
-                {"command_type":"sum","target_range":"B1","parameters":["A1:A10"]}
-            ],
-            "summary": "A1~A10에 각각 1~10까지 값을 입력하고, 이 범위의 합계를 B1에 계산하여 표시했습니다."
-        }
-        """
-
         # 3. GPT API 호출
         try:
             response = self._call_gpt_api(user_prompt)
-            # response = dummy_response
             # 4. 응답 파싱 및 검증
             parsed_response = self._parse_gpt_response(response)
 
@@ -211,6 +190,8 @@ class LLMService:
             # JSON 파싱
             parsed = json.loads(response)
 
+            print("parsed: ")
+            print(parsed)
             # 필수 필드 검증
             required_fields = ["response", "commands", "summary"]
             for field in required_fields:
@@ -218,14 +199,14 @@ class LLMService:
                     raise ValueError(f"필수 필드 누락: {field}")
 
             # commands가 리스트인지 확인
-            if not isinstance(parsed["commands"], Dict):
+            if not isinstance(parsed["commands"], list):
                 raise ValueError("commands는 리스트여야 합니다")
 
             # 각 명령어 검증
             for cmd in parsed["commands"]:
                 if not all(key in cmd for key in ["command_type", "target_range", "parameters"]):
                     raise ValueError("명령어에 필수 필드가 누락되었습니다")
-                if not isinstance(cmd["parameters"], dict):
+                if not isinstance(cmd["parameters"], list):
                     raise ValueError("parameters는 배열이어야 합니다")
 
             return parsed
@@ -266,6 +247,109 @@ class LLMService:
             excel_commands.append(excel_command)
 
         return excel_commands
+
+    # def _convert_parameters_to_dict(self, command_type: str, parameters: List[Any]) -> Dict[str, Any]:
+    #     """
+    #     명령어 타입에 따라 parameters 배열을 적절한 딕셔너리로 변환합니다.
+    #
+    #     Args:
+    #         command_type: 명령어 타입
+    #         parameters: 파라미터 배열
+    #
+    #     Returns:
+    #         파라미터 딕셔너리
+    #     """
+    #     # 파라미터가 없는 경우
+    #     if not parameters:
+    #         return {}
+    #
+    #     # 명령어 타입별 변환 규칙
+    #     if command_type in ["sum", "average", "count", "max", "min"]:
+    #         # 수식 함수: 첫 번째 파라미터가 범위
+    #         return {"range": parameters[0]} if parameters else {}
+    #
+    #     elif command_type in ["font_color", "fill_color"]:
+    #         # 색상 설정: 첫 번째 파라미터가 색상 값
+    #         return {"color": parameters[0]} if parameters else {}
+    #
+    #     elif command_type == "font_size":
+    #         # 글자 크기: 첫 번째 파라미터가 크기
+    #         return {"size": int(parameters[0])} if parameters else {}
+    #
+    #     elif command_type == "font_name":
+    #         # 글꼴: 첫 번째 파라미터가 글꼴 이름
+    #         return {"name": parameters[0]} if parameters else {}
+    #
+    #     elif command_type == "border":
+    #         # 테두리: 스타일 지정 (기본값: thin)
+    #         return {"style": parameters[0] if parameters else "thin"}
+    #
+    #     elif command_type == "set_value":
+    #         # 값 설정: 첫 번째 파라미터가 값
+    #         return {"value": parameters[0]} if parameters else {}
+    #
+    #     else:
+    #         # 기타 명령어는 파라미터가 필요 없음
+    #         return {}
+
+    def _convert_parameters_to_dict(self, command_type: str, parameters: List[Any]) -> Dict[str, Any]:
+        """
+        명령어 타입에 따라 parameters 배열을 적절한 딕셔너리로 변환합니다.
+        parameters[0]에는 일반적으로 적용 대상 셀 범위가 들어 있음.
+        """
+        if not parameters:
+            return {}
+
+        # 수식 함수
+        if command_type in ["sum", "average", "count", "max", "min"]:
+            return {"range": parameters[0]} if parameters else {}
+
+        # 값 설정
+        if command_type == "set_value":
+            return {"value": parameters[0]} if parameters else {}
+
+        # 셀 병합/해제/삭제 등 범위 기반 명령어
+        if command_type in ["merge", "unmerge", "clear"]:
+            return {"range": parameters[0]} if parameters else {}
+
+        # 서식 관련
+        if command_type in ["font_color", "fill_color"]:
+            return {"color": parameters[0]} if parameters else {}
+        if command_type == "font_size":
+            return {"size": int(parameters[0])} if parameters else {}
+        if command_type == "font_name":
+            return {"name": parameters[0]} if parameters else {}
+        if command_type == "border":
+            return {"style": parameters[0]} if parameters else {"style": "thin"}
+
+        # 텍스트 서식
+        if command_type in ["bold", "italic", "underline"]:
+            return {
+                "range": parameters[0],
+                "enabled": parameters[1] if len(parameters) > 1 else True
+            } if parameters else {}
+
+        # 정렬 (수평)
+        if command_type in ["align_left", "align_center", "align_right"]:
+            return {
+                "range": parameters[0],
+                "horizontal": command_type.replace("align_", "")
+            } if parameters else {}
+
+        # 정렬 (수직)
+        if command_type in ["align_top", "align_middle", "align_bottom"]:
+            vertical_map = {
+                "align_top": "top",
+                "align_middle": "center",
+                "align_bottom": "bottom"
+            }
+            return {
+                "range": parameters[0],
+                "vertical": vertical_map[command_type]
+            } if parameters else {}
+
+        # 알 수 없는 명령어
+        return {}
 
 # 모듈 레벨 함수로 export
 def get_llm_response(
