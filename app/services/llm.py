@@ -116,9 +116,9 @@ class LLMService:
             sample_data = []
             formula_cells = []
 
-            # 최대 10x10 범위까지 샘플링
-            for row in range(1, min(11, max_row + 1)):
-                for col in range(1, min(11, max_col + 1)):
+            # 최대 100x20 범위까지 샘플링
+            for row in range(1, min(21, max_row + 1)):
+                for col in range(1, min(101, max_col + 1)):
                     cell = ws.cell(row=row, column=col)
                     if cell.value is not None:
                         cell_ref = cell.coordinate
@@ -133,7 +133,7 @@ class LLMService:
             return create_excel_context(
                 rows=max_row,
                 cols=max_col,
-                sample_data=sample_data[:20],  # 최대 20개 샘플
+                sample_data=sample_data[:2000],  # 최대 2000개 샘플
                 formula_data=formula_cells
             )
 
@@ -312,41 +312,109 @@ class LLMService:
         if command_type in ["merge", "unmerge", "clear"]:
             return {"range": parameters[0]} if parameters else {}
 
-        # 서식 관련
-        if command_type in ["font_color", "fill_color"]:
-            return {"color": parameters[0]} if parameters else {}
-        if command_type == "font_size":
-            return {"size": int(parameters[0])} if parameters else {}
-        if command_type == "font_name":
-            return {"name": parameters[0]} if parameters else {}
-        if command_type == "border":
-            return {"style": parameters[0]} if parameters else {"style": "thin"}
-
-        # 텍스트 서식
-        if command_type in ["bold", "italic", "underline"]:
+        if command_type == "iferror":
             return {
-                "range": parameters[0],
-                "enabled": parameters[1] if len(parameters) > 1 else True
-            } if parameters else {}
+                "test_formula": parameters[0],
+                "error_value": parameters[1]
+            } if len(parameters) >= 2 else {}
 
-        # 정렬 (수평)
-        if command_type in ["align_left", "align_center", "align_right"]:
+        if command_type == "ifna":
             return {
-                "range": parameters[0],
-                "horizontal": command_type.replace("align_", "")
-            } if parameters else {}
+                "test_formula": parameters[0],
+                "na_value": parameters[1]
+            } if len(parameters) >= 2 else {}
 
-        # 정렬 (수직)
-        if command_type in ["align_top", "align_middle", "align_bottom"]:
-            vertical_map = {
-                "align_top": "top",
-                "align_middle": "center",
-                "align_bottom": "bottom"
-            }
-            return {
-                "range": parameters[0],
-                "vertical": vertical_map[command_type]
-            } if parameters else {}
+        if command_type == "ifs":
+            # IFS는 가변 길이 매개변수이므로 리스트 그대로 반환
+            return {"conditions_values": parameters} if parameters else {}
+
+        # 고급 검색 함수
+        if command_type == "xlookup":
+            result = {}
+            if len(parameters) >= 3:
+                result["lookup_value"] = parameters[0]
+                result["lookup_array"] = parameters[1]
+                result["return_array"] = parameters[2]
+            if len(parameters) >= 4:
+                result["if_not_found"] = parameters[3]
+            if len(parameters) >= 5:
+                result["match_mode"] = parameters[4]
+            if len(parameters) >= 6:
+                result["search_mode"] = parameters[5]
+            return result
+
+        if command_type == "filter":
+            result = {}
+            if len(parameters) >= 2:
+                result["array"] = parameters[0]
+                result["include"] = parameters[1]
+            if len(parameters) >= 3:
+                result["if_empty"] = parameters[2]
+            return result
+
+        if command_type == "unique":
+            result = {}
+            if len(parameters) >= 1:
+                result["array"] = parameters[0]
+            if len(parameters) >= 2:
+                result["by_col"] = parameters[1]
+            if len(parameters) >= 3:
+                result["exactly_once"] = parameters[2]
+            return result
+
+        # 통계 함수
+        if command_type in ["median", "mode"]:
+            return {"range": parameters[0]} if parameters else {}
+
+        if command_type == "stdev":
+            result = {"range": parameters[0]} if parameters else {}
+            if len(parameters) >= 2:
+                result["type"] = parameters[1]  # "S" 또는 "P"
+            return result
+
+        if command_type == "rank":
+            result = {}
+            if len(parameters) >= 2:
+                result["number"] = parameters[0]
+                result["ref"] = parameters[1]
+            if len(parameters) >= 3:
+                result["order"] = parameters[2]
+            return result
+        # 조건부 함수
+        if command_type == "countif":
+            if len(parameters) >= 2:
+                return {"range": parameters[0], "criteria": parameters[1]}
+            return {}
+
+        if command_type == "sumif":
+            if len(parameters) >= 2:
+                result = {"range": parameters[0], "criteria": parameters[1]}
+                if len(parameters) >= 3:  # 선택적 sum_range
+                    result["sum_range"] = parameters[2]
+                return result
+            return {}
+
+        if command_type == "averageif":
+            if len(parameters) >= 2:
+                result = {"range": parameters[0], "criteria": parameters[1]}
+                if len(parameters) >= 3:  # 선택적 avg_range
+                    result["avg_range"] = parameters[2]
+                return result
+            return {}
+
+        # 텍스트 처리 함수
+        if command_type in ["trim", "upper", "lower"]:
+            return {"source": parameters[0]}
+
+        if command_type == "substitute":
+            if len(parameters) >= 3:
+                return {
+                    "source": parameters[0],
+                    "old_text": parameters[1],
+                    "new_text": parameters[2],
+                    "Instance_number": parameters[3]
+                }
+            return {}
 
         # 알 수 없는 명령어
         return {}

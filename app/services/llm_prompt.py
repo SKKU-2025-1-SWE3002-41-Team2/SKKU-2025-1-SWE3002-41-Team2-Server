@@ -23,19 +23,16 @@ match(찾는 값이 몇 번째 위치에 있는지 반환)
 명령어 작성 규칙:
 1. command_type은 위에 나열된 값 중 하나여야 합니다 (소문자로 작성)
 2. target_range는 Excel 형식으로 표현 (예: "A1", "B2:C5")
-3. 색상은 16진수 6자리로 표현 (예: "FF0000" = 빨간색, "0000FF" = 파란색)
-4. 명령어는 실행 순서를 고려하여 논리적으로 배치
-5. 수식 명령의 경우 parameters에 계산에 필요한 값들을 배열로 지정
-6. summary는 입력받은 summary와 이번 응답에서의 엑셀 시퀀스를 통한 변경점을 반영해 갱신해서 응답
-7. summary는 갱신해서 1000자 이하로 응답
-8. 모든 명령어는 `parameters` 필드를 반드시 포함해야 합니다.
+3. 명령어는 실행 순서를 고려하여 논리적으로 배치
+4. 수식 명령의 경우 parameters에 계산에 필요한 값들을 배열로 지정
+5. summary는 입력받은 summary와 이번 응답에서의 엑셀 시퀀스를 통한 변경점을 반영해 갱신해서 1000자 이하로 응답
+6. 엑셀 수식 함수에 대해서는 항상 소숫점을 최대 세째 자리까지 반올림하여 표시합니다.
+7. 모든 명령어는 `parameters` 필드를 반드시 포함해야 합니다.
    - 파라미터가 필요한 명령어는 실제 값들을 배열로 입력합니다.
    - 파라미터가 필요 없는 명령어는 빈 배열 []을 사용합니다.
 
 예시:
 - B2:B10의 합계를 B11에 표시: command_type="sum", target_range="B11", parameters=["B2:B10"]
-- A1 셀을 굵게: command_type="bold", target_range="A1", parameters=[]
-- C1:C5를 빨간색으로: command_type="font_color", target_range="C1:C5", parameters=["FF0000"]
 - 값 설정: command_type="set_value", target_range="A1", parameters=["Hello"]
 
 - IF 함수: B1 값이 60 이상이면 "합격", 아니면 "불합격"을 A1에 설정
@@ -51,8 +48,9 @@ match(찾는 값이 몇 번째 위치에 있는지 반환)
 - command_type은 반드시 enum에 정의된 값 중 하나여야 합니다
 - parameters는 항상 배열(리스트) 형태여야 합니다
 - 수식 함수의 경우 parameters[0]에 범위를 넣습니다
-- 색상 설정의 경우 parameters[0]에 색상 값을 넣습니다
 - 값 설정의 경우 parameters[0]에 설정할 값을 넣습니다
+- 이미 값이 있는 셀의 경우 목적 없이 set_value로 값을 변경하지 않습니다.
+- response 필드는 반드시 마크다운(Markdown) 형식으로 작성해야 하며, 표, 코드블록, 강조 등 마크다운 문법을 적극적으로 활용하세요.
 
 응답은 항상 친절하고 명확한 한국어로 작성하세요."""
 
@@ -106,7 +104,7 @@ RESPONSE_SCHEMA = {
             "properties": {
                 "response": {
                     "type": "string",
-                    "description": "사용자에게 보여줄 한국어 응답"
+                    "description": "사용자에게 보여줄 한국어 응답. 마크다운 형식으로 생성"
                 },
                 "commands": {
                     "type": "array",
@@ -120,15 +118,8 @@ RESPONSE_SCHEMA = {
                                 "enum": [
                                     # 함수 관련
                                     "sum", "average", "count", "max", "min",
-                                    # 서식 관련
-                                    "bold", "italic", "underline",
-                                    "font_color", "fill_color", "border",
-                                    "font_size", "font_name",
                                     # 데이터 관련
-                                    "set_value", "clear", "merge", "unmerge",
-                                    # 정렬 관련
-                                    "align_left", "align_center", "align_right",
-                                    "align_top", "align_middle", "align_bottom"
+                                    "set_value", "clear", "merge", "unmerge"
                                 ]
                             },
                             "target_range": {
