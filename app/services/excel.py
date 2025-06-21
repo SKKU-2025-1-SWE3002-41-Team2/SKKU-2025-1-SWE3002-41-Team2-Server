@@ -115,7 +115,13 @@ class ExcelManipulator:
         elif command_type in ["align_left", "align_center", "align_right",
                               "align_top", "align_middle", "align_bottom"]:
             self._apply_alignment(command)
-
+        elif command_type in ["concatenate", "&"]: self._apply_concatenate(command)
+        elif command_type == "left":   self._apply_left(command)
+        elif command_type == "right":  self._apply_right(command)
+        elif command_type == "mid":    self._apply_mid(command)
+        elif command_type == "len":    self._apply_len(command)
+        elif command_type == "round":  self._apply_round(command)
+        elif command_type == "isblank":self._apply_isblank(command)
         else:
             print(f"지원하지 않는 명령어: {command_type}")
 
@@ -154,6 +160,62 @@ class ExcelManipulator:
             range_str = command.parameters["range"]
             formula = f"=MIN({range_str})"
             self.active_sheet[command.target_range] = formula
+
+    def _apply_concatenate(self, command: ExcelCommand):
+        """CONCATENATE 함수를 적용합니다."""
+        values = command.parameters.get("values", [])
+        if not values:
+            return
+        # 각 값을 셀 참조나 문자열로 처리
+        arg_str = ",".join(str(v) for v in values)
+        self.active_sheet[command.target_range] = f"=CONCATENATE({arg_str})"
+
+    def _apply_left(self, command: ExcelCommand):
+        """LEFT 함수를 적용합니다."""
+        text = command.parameters.get("text", "")
+        num_chars = command.parameters.get("num_chars", 1)
+        if not text:
+            return
+        self.active_sheet[command.target_range] = f"=LEFT({text},{num_chars})"
+
+    def _apply_right(self, command: ExcelCommand):
+        """RIGHT 함수를 적용합니다."""
+        text = command.parameters.get("text", "")
+        num_chars = command.parameters.get("num_chars", 1)
+        if not text:
+            return
+        self.active_sheet[command.target_range] = f"=RIGHT({text},{num_chars})"
+
+    def _apply_mid(self, command: ExcelCommand):
+        """MID 함수를 적용합니다."""
+        text = command.parameters.get("text", "")
+        start_num = command.parameters.get("start_num", 1)
+        num_chars = command.parameters.get("num_chars", 1)
+        if not text:
+            return
+        self.active_sheet[command.target_range] = f"=MID({text},{start_num},{num_chars})"
+
+    def _apply_len(self, command: ExcelCommand):
+        """LEN 함수를 적용합니다."""
+        text = command.parameters.get("text", "")
+        if not text:
+            return
+        self.active_sheet[command.target_range] = f"=LEN({text})"
+
+    def _apply_round(self, command: ExcelCommand):
+        """ROUND 함수를 적용합니다."""
+        number = command.parameters.get("number", "")
+        num_digits = command.parameters.get("num_digits", 0)
+        if not number:
+            return
+        self.active_sheet[command.target_range] = f"=ROUND({number},{num_digits})"
+
+    def _apply_isblank(self, command: ExcelCommand):
+        """ISBLANK 함수를 적용합니다."""
+        value = command.parameters.get("value", "")
+        if not value:
+            return
+        self.active_sheet[command.target_range] = f"=ISBLANK({value})"
 
     # 서식 관련 명령어 구현
     def _apply_bold(self, command: ExcelCommand) -> None:
