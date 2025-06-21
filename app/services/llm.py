@@ -373,6 +373,47 @@ class LLMService:
             return {}
 
         # 알 수 없는 명령어
+        if command_type in ["concatenate", "&"]:
+            # 여러 인수를 그대로 넘깁니다
+            return {"values": parameters} if parameters else {}
+
+        if command_type == "left":
+            # LEFT(text, [num_chars])
+            return {
+                "text": parameters[0],
+                "num_chars": int(parameters[1]) if len(parameters) > 1 else 1,
+            } if parameters else {}
+
+        if command_type == "right":
+            # RIGHT(text, [num_chars])
+            return {
+                "text": parameters[0],
+                "num_chars": int(parameters[1]) if len(parameters) > 1 else 1,
+            } if parameters else {}
+
+        if command_type == "mid":
+            # MID(text, start_num, num_chars)
+            return {
+                "text": parameters[0],
+                "start_num": int(parameters[1]) if len(parameters) > 1 else 1,
+                "num_chars": int(parameters[2]) if len(parameters) > 2 else 1,
+            } if parameters else {}
+
+        if command_type == "len":
+            # LEN(text)
+            return {"text": parameters[0]} if parameters else {}
+
+        if command_type == "round":
+            # ROUND(number, num_digits)
+            return {
+                "number": parameters[0],
+                "num_digits": int(parameters[1]) if len(parameters) > 1 else 0,
+            } if parameters else {}
+
+        if command_type == "isblank":
+            # ISBLANK(value)
+            return {"value": parameters[0]} if parameters else {}
+
         return {}
 
 # 모듈 레벨 함수로 export
