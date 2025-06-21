@@ -117,8 +117,8 @@ class LLMService:
             formula_cells = []
 
             # 최대 100x20 범위까지 샘플링
-            for row in range(1, min(21, max_row + 1)):
-                for col in range(1, min(101, max_col + 1)):
+            for row in range(1, min(101, max_row + 1)):
+                for col in range(1, min(21, max_col + 1)):
                     cell = ws.cell(row=row, column=col)
                     if cell.value is not None:
                         cell_ref = cell.coordinate

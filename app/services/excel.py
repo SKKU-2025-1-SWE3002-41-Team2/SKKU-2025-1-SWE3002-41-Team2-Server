@@ -82,12 +82,19 @@ class ExcelManipulator:
             self._apply_max(command)
         elif command_type == "min":
             self._apply_min(command)
-        elif command_type == "left":   self._apply_left(command)
-        elif command_type == "right":  self._apply_right(command)
-        elif command_type == "mid":    self._apply_mid(command)
-        elif command_type == "len":    self._apply_len(command)
-        elif command_type == "round":  self._apply_round(command)
-        elif command_type == "isblank":self._apply_isblank(command)
+
+        elif command_type == "left":
+            self._apply_left(command)
+        elif command_type == "right":
+            self._apply_right(command)
+        elif command_type == "mid":
+            self._apply_mid(command)
+        elif command_type == "len":
+            self._apply_len(command)
+        elif command_type == "round":
+            self._apply_round(command)
+        elif command_type == "isblank":
+            self._apply_isblank(command)
 
         # 논리 함수
         elif command_type == "if":
@@ -114,24 +121,6 @@ class ExcelManipulator:
             p = command.parameters
             formula = f'=MATCH({p["lookup_value"]}, {p["lookup_array"]}, {p["match_type"]})'
             self.active_sheet[command.target_range] = formula
-
-        # 서식 관련 명령어
-        elif command_type == "bold":
-            self._apply_bold(command)
-        elif command_type == "italic":
-            self._apply_italic(command)
-        elif command_type == "underline":
-            self._apply_underline(command)
-        elif command_type == "font_color":
-            self._apply_font_color(command)
-        elif command_type == "fill_color":
-            self._apply_fill_color(command)
-        elif command_type == "border":
-            self._apply_border(command)
-        elif command_type == "font_size":
-            self._apply_font_size(command)
-        elif command_type == "font_name":
-            self._apply_font_name(command)
 
         # 데이터 관련 명령어
         elif command_type == "set_value":
@@ -160,6 +149,7 @@ class ExcelManipulator:
             self._apply_lower(command)
         elif command_type == "substitute":
             self._apply_substitute(command)
+
         # 고급 논리 함수
         elif command_type == "iferror":
             self._apply_iferror(command)
@@ -260,7 +250,6 @@ class ExcelManipulator:
             return
         self.active_sheet[command.target_range] = f"=RIGHT({text},{num_chars})"
 
-
     def _apply_sumif(self, command: ExcelCommand) -> None:
         """SUMIF 함수를 적용합니다."""
         if command.parameters and "range" in command.parameters and "criteria" in command.parameters:
@@ -330,47 +319,6 @@ class ExcelManipulator:
             source = command.parameters["source"]
             formula = f"=TRIM({source})"
             self.active_sheet[command.target_range] = formula
-
-    # 서식 관련 명령어 구현
-    def _apply_bold(self, command: ExcelCommand) -> None:
-        """굵은 글씨체를 적용합니다."""
-        self._apply_font_style(command.target_range, bold=True)
-
-    def _apply_italic(self, command: ExcelCommand) -> None:
-        """기울임체를 적용합니다."""
-        self._apply_font_style(command.target_range, italic=True)
-
-    def _apply_underline(self, command: ExcelCommand) -> None:
-        """밑줄을 적용합니다."""
-        self._apply_font_style(command.target_range, underline='single')
-
-    def _apply_font_color(self, command: ExcelCommand) -> None:
-        """글자 색상을 적용합니다."""
-        if command.parameters and "color" in command.parameters:
-            color = command.parameters["color"]
-            self._apply_font_style(command.target_range, color=color)
-
-    def _apply_fill_color(self, command: ExcelCommand) -> None:
-        """배경색을 적용합니다."""
-        if command.parameters and "color" in command.parameters:
-            color = command.parameters["color"]
-            fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
-            self._apply_to_range(command.target_range, lambda cell: setattr(cell, 'fill', fill))
-
-    def _apply_border(self, command: ExcelCommand) -> None:
-        """테두리를 적용합니다."""
-        style = "thin"  # 기본값
-        if command.parameters and "style" in command.parameters:
-            style = command.parameters["style"]
-
-        border = Border(
-            left=Side(style=style),
-            right=Side(style=style),
-            top=Side(style=style),
-            bottom=Side(style=style)
-        )
-        self._apply_to_range(command.target_range, lambda cell: setattr(cell, 'border', border))
-
 
     # 데이터 관련 명령어 구현
     def _set_value(self, command: ExcelCommand) -> None:
@@ -735,70 +683,6 @@ class ExcelManipulator:
         if not formula_found:
             print("  수식이 없습니다.")
 
-        # 서식 정보 출력 (굵게, 색상 등)
-        print(f"\n[서식 정보]")
-        formatted_cells = []
-        for row in range(1, max_row + 1):
-            for col in range(1, max_col + 1):
-                cell = ws.cell(row, col)
-                format_info = []
-
-                # 폰트 정보
-                if cell.font:
-                    if cell.font.bold:
-                        format_info.append("굵게")
-                    if cell.font.italic:
-                        format_info.append("기울임")
-                    if cell.font.underline:
-                        format_info.append("밑줄")
-
-                    # 글자색 정보 (안전하게 처리)
-                    if cell.font.color:
-                        try:
-                            if hasattr(cell.font.color, 'rgb') and cell.font.color.rgb:
-                                # rgb 값이 문자열인지 확인
-                                rgb_value = str(cell.font.color.rgb)
-                                if rgb_value != "FF000000" and rgb_value != "None":
-                                    format_info.append(f"글자색:{rgb_value}")
-                            elif hasattr(cell.font.color, 'theme') and cell.font.color.theme is not None:
-                                format_info.append(f"글자색:테마{cell.font.color.theme}")
-                            elif hasattr(cell.font.color, 'indexed') and cell.font.color.indexed is not None:
-                                format_info.append(f"글자색:인덱스{cell.font.color.indexed}")
-                        except Exception as e:
-                            # 색상 정보를 가져오는 데 실패한 경우
-                            pass
-
-                # 배경색 정보 (안전하게 처리)
-                if cell.fill and cell.fill.start_color:
-                    try:
-                        if hasattr(cell.fill.start_color, 'rgb') and cell.fill.start_color.rgb:
-                            rgb_value = str(cell.fill.start_color.rgb)
-                            if rgb_value != "00000000" and rgb_value != "None":
-                                format_info.append(f"배경색:{rgb_value}")
-                        elif hasattr(cell.fill.start_color, 'theme') and cell.fill.start_color.theme is not None:
-                            format_info.append(f"배경색:테마{cell.fill.start_color.theme}")
-                        elif hasattr(cell.fill.start_color, 'indexed') and cell.fill.start_color.indexed is not None:
-                            format_info.append(f"배경색:인덱스{cell.fill.start_color.indexed}")
-                    except Exception as e:
-                        # 배경색 정보를 가져오는 데 실패한 경우
-                        pass
-
-                # 정렬 정보
-                if cell.alignment:
-                    if cell.alignment.horizontal and cell.alignment.horizontal != "general":
-                        format_info.append(f"수평:{cell.alignment.horizontal}")
-                    if cell.alignment.vertical and cell.alignment.vertical != "bottom":
-                        format_info.append(f"수직:{cell.alignment.vertical}")
-
-                if format_info:
-                    formatted_cells.append(f"  {cell.coordinate}: {', '.join(format_info)}")
-
-        if formatted_cells:
-            for info in formatted_cells:
-                print(info)
-        else:
-            print("  서식이 적용된 셀이 없습니다.")
-
         print(f"{'=' * 50}\n")
 
 
@@ -833,8 +717,7 @@ def process_excel_with_commands(
 
     manipulator.execute_commands(commands)
 
-    # 🔹 수정 후 상태 로그 출력
-    manipulator.log_worksheet_contents("명령어 적용 후 워크시트 최종 상태")
+    manipulator.log_worksheet_contents("명령어 적용 전 워크시트 상태")
 
     # 결과 저장 및 반환
     return manipulator.save_to_bytes()

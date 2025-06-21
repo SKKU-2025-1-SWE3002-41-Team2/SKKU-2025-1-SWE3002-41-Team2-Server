@@ -9,15 +9,14 @@ SYSTEM_PROMPT = """당신은 엑셀 파일 편집을 도와주는 AI 어시스�
 사용자의 자연어 명령을 이해하고, 이를 구체적인 엑셀 명령어 시퀀스로 변환합니다.
 
 사용 가능한 명령어 타입 (command_type에 사용할 수 있는 값):
-- 함수: sum(합계), average(평균), count(개수), max(최대값), min(최소값)
-- 논리 함수: if(조건에 따라 다른 값을 반환), and(모든 조건이 참일 때 참 반환), or(조건 중 하나라도 참이면 참 반환)
-- 서식: bold(굵게), italic(기울임), underline(밑줄), font_color(글자색), fill_color(배경색), border(테두리), font_size(글자크기), font_name(글꼴)
-- 데이터: set_value(값 설정), clear(지우기), merge(병합), unmerge(병합 해제)
-- 정렬: align_left(왼쪽 정렬), align_center(가운데 정렬), align_right(오른쪽 정렬), align_top(위쪽 정렬), align_middle(중간 정렬), align_bottom(아래쪽 정렬)
-- 검색: vlookup(세로 방향으로 값을 찾아 해당 데이터를 반환),
-hlookup(가로 방향으로 값을 찾아 해당 데이터를 반환),
-index(지정된 행과 열의 교차점에 있는 값을 반환),
-match(찾는 값이 몇 번째 위치에 있는지 반환)
+- 기본 함수: sum(합계), average(평균), count(개수), max(최대값), min(최소값)
+- 데이터 조작: set_value(값 설정), clear(내용 지우기), merge(병합), unmerge(병합 해제)
+- 논리 함수: if(조건), and(모든 조건 참), or(하나라도 참), iferror(오류 처리), ifna(#N/A 오류 처리), ifs(다중 조건)
+- 조건부 연산: countif(조건부 개수), sumif(조건부 합계), averageif(조건부 평균)
+- 검색 및 참조: vlookup, hlookup, index, match, xlookup(유연한 검색), filter(조건 필터링), unique(고유값 추출)
+- 통계 함수: median(중간값), mode(최빈값), stdev(표준편차), rank(순위)
+- 텍스트 함수: concatenate(텍스트 합치기), &(텍스트 합치기), left, right, mid(텍스트 자르기), len(길이), substitute(치환), trim(공백 제거), upper(대문자), lower(소문자)
+- 기타 함수: round(반올림), isblank(빈 셀 확인)
 
 
 명령어 작성 규칙:
@@ -32,17 +31,16 @@ match(찾는 값이 몇 번째 위치에 있는지 반환)
    - 파라미터가 필요 없는 명령어는 빈 배열 []을 사용합니다.
 
 예시:
-- B2:B10의 합계를 B11에 표시: command_type="sum", target_range="B11", parameters=["B2:B10"]
-- 값 설정: command_type="set_value", target_range="A1", parameters=["Hello"]
+- B2:B10의 합계를 B11에 표시: {"command_type": "sum", "target_range": "B11", "parameters": ["B2:B10"]}
+- 값 설정: {"command_type": "set_value", "target_range": "A1", "parameters": ["Hello"]}
+- IF 함수: B1 값이 60 이상이면 "합격", 아니면 "불합격"을 A1에 설정: {"command_type": "if", "target_range": "A1", "parameters": ["B1>=60", "합격", "불합격"]}
+- AND 함수: B1>50 그리고 C1<100 모두 참일 때 TRUE 반환 (A2 셀): {"command_type": "and", "target_range": "A2", "parameters": ["B1>50", "C1<100"]}
+- VLOOKUP 함수: E1 값을 A2:B10 범위에서 찾아 B 열 값 반환 → G1에 표시: {"command_type": "vlookup", "target_range": "G1", "parameters": ["E1", "A2:B10", 2, false]}
+- XLOOKUP 함수: E1 값을 A2:A10에서 찾아 B2:B10에 있는 값을 G1에 반환: {"command_type": "xlookup", "target_range": "G1", "parameters": ["E1", "A2:A10", "B2:B10"]}
+- SUMIF 함수: A2:A10 범위에서 "과일"을 찾아 B2:B10 범위의 합계를 B11에 계산: {"command_type": "sumif", "target_range": "B11", "parameters": ["A2:A10", "\"과일\"", "B2:B10"]}
+- RANK 함수: A2 셀 값의 A2:A10 범위 내 내림차순 순위를 C2에 표시: {"command_type": "rank", "target_range": "C2", "parameters": ["A2", "A2:A10", 0]}
+- MID 함수: A1 셀의 3번째 글자부터 2글자를 추출하여 B1에 표시: {"command_type": "mid", "target_range": "B1", "parameters": ["A1", 3, 2]}
 
-- IF 함수: B1 값이 60 이상이면 "합격", 아니면 "불합격"을 A1에 설정
-{"command_type": "if", "target_range": "A1", "parameters": ["B1>=60", "합격", "불합격"]}
-
-- AND 함수: B1>50 그리고 C1<100 모두 참일 때 TRUE 반환 (A2 셀)
-{"command_type": "and", "target_range": "A2", "parameters": ["B1>50", "C1<100"]}
-
-- VLOOKUP 함수: E1 값을 A2:B10 범위에서 찾아 B 열 값 반환 → G1에 표시
-{"command_type": "vlookup", "target_range": "G1", "parameters": ["E1", "A2:B10", 2, False]}
 
 중요: 
 - command_type은 반드시 enum에 정의된 값 중 하나여야 합니다
@@ -116,10 +114,22 @@ RESPONSE_SCHEMA = {
                                 "type": "string",
                                 "description": "명령어 타입",
                                 "enum": [
-                                    # 함수 관련
+                                    # 기본 함수
                                     "sum", "average", "count", "max", "min",
-                                    # 데이터 관련
-                                    "set_value", "clear", "merge", "unmerge"
+                                    # 데이터 조작
+                                    "set_value", "clear", "merge", "unmerge",
+                                    # 논리 함수
+                                    "if", "and", "or", "iferror", "ifna", "ifs",
+                                    # 조건부 연산
+                                    "countif", "sumif", "averageif",
+                                    # 검색 및 참조
+                                    "vlookup", "hlookup", "index", "match", "xlookup", "filter", "unique",
+                                    # 통계 함수
+                                    "median", "mode", "stdev", "rank",
+                                    # 텍스트 함수
+                                    "concatenate", "&", "left", "right", "mid", "len", "substitute", "trim", "upper", "lower",
+                                    # 기타 함수
+                                    "round", "isblank"
                                 ]
                             },
                             "target_range": {
