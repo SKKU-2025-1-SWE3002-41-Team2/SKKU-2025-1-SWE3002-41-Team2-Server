@@ -82,6 +82,12 @@ class ExcelManipulator:
             self._apply_max(command)
         elif command_type == "min":
             self._apply_min(command)
+        elif command_type == "left":   self._apply_left(command)
+        elif command_type == "right":  self._apply_right(command)
+        elif command_type == "mid":    self._apply_mid(command)
+        elif command_type == "len":    self._apply_len(command)
+        elif command_type == "round":  self._apply_round(command)
+        elif command_type == "isblank":self._apply_isblank(command)
 
         # 서식 관련 명령어
         elif command_type == "bold":
@@ -116,12 +122,7 @@ class ExcelManipulator:
                               "align_top", "align_middle", "align_bottom"]:
             self._apply_alignment(command)
         elif command_type in ["concatenate", "&"]: self._apply_concatenate(command)
-        elif command_type == "left":   self._apply_left(command)
-        elif command_type == "right":  self._apply_right(command)
-        elif command_type == "mid":    self._apply_mid(command)
-        elif command_type == "len":    self._apply_len(command)
-        elif command_type == "round":  self._apply_round(command)
-        elif command_type == "isblank":self._apply_isblank(command)
+
         else:
             print(f"지원하지 않는 명령어: {command_type}")
 
