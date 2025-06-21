@@ -248,50 +248,6 @@ class LLMService:
 
         return excel_commands
 
-    # def _convert_parameters_to_dict(self, command_type: str, parameters: List[Any]) -> Dict[str, Any]:
-    #     """
-    #     명령어 타입에 따라 parameters 배열을 적절한 딕셔너리로 변환합니다.
-    #
-    #     Args:
-    #         command_type: 명령어 타입
-    #         parameters: 파라미터 배열
-    #
-    #     Returns:
-    #         파라미터 딕셔너리
-    #     """
-    #     # 파라미터가 없는 경우
-    #     if not parameters:
-    #         return {}
-    #
-    #     # 명령어 타입별 변환 규칙
-    #     if command_type in ["sum", "average", "count", "max", "min"]:
-    #         # 수식 함수: 첫 번째 파라미터가 범위
-    #         return {"range": parameters[0]} if parameters else {}
-    #
-    #     elif command_type in ["font_color", "fill_color"]:
-    #         # 색상 설정: 첫 번째 파라미터가 색상 값
-    #         return {"color": parameters[0]} if parameters else {}
-    #
-    #     elif command_type == "font_size":
-    #         # 글자 크기: 첫 번째 파라미터가 크기
-    #         return {"size": int(parameters[0])} if parameters else {}
-    #
-    #     elif command_type == "font_name":
-    #         # 글꼴: 첫 번째 파라미터가 글꼴 이름
-    #         return {"name": parameters[0]} if parameters else {}
-    #
-    #     elif command_type == "border":
-    #         # 테두리: 스타일 지정 (기본값: thin)
-    #         return {"style": parameters[0] if parameters else "thin"}
-    #
-    #     elif command_type == "set_value":
-    #         # 값 설정: 첫 번째 파라미터가 값
-    #         return {"value": parameters[0]} if parameters else {}
-    #
-    #     else:
-    #         # 기타 명령어는 파라미터가 필요 없음
-    #         return {}
-
     def _convert_parameters_to_dict(self, command_type: str, parameters: List[Any]) -> Dict[str, Any]:
         """
         명령어 타입에 따라 parameters 배열을 적절한 딕셔너리로 변환합니다.
@@ -303,6 +259,50 @@ class LLMService:
         # 수식 함수
         if command_type in ["sum", "average", "count", "max", "min"]:
             return {"range": parameters[0]} if parameters else {}
+
+        #논리 함수
+        if command_type == "if":
+            return {
+                "condition": parameters[0],
+                "true_value": parameters[1],
+                "false_value": parameters[2] if len(parameters) > 2 else ""
+            }
+
+        if command_type in ["and", "or"]:
+            return {
+                "conditions": parameters
+            }
+
+        # 검색 함수
+        if command_type == "vlookup":
+            return {
+                "lookup_value": parameters[0],
+                "table_array": parameters[1],
+                "col_index": parameters[2],
+                "range_lookup": parameters[3] if len(parameters) > 3 else True
+            }
+
+        if command_type == "hlookup":
+            return {
+                "lookup_value": parameters[0],
+                "table_array": parameters[1],
+                "row_index": parameters[2],
+                "range_lookup": parameters[3] if len(parameters) > 3 else True
+            }
+
+        if command_type == "index":
+            return {
+                "array": parameters[0],
+                "row_num": parameters[1],
+                "col_num": parameters[2] if len(parameters) > 2 else 1
+            }
+
+        if command_type == "match":
+            return {
+                "lookup_value": parameters[0],
+                "lookup_array": parameters[1],
+                "match_type": parameters[2] if len(parameters) > 2 else 0
+            }
 
         # 값 설정
         if command_type == "set_value":
