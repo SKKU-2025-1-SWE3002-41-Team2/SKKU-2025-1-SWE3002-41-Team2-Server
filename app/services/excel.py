@@ -89,6 +89,32 @@ class ExcelManipulator:
         elif command_type == "round":  self._apply_round(command)
         elif command_type == "isblank":self._apply_isblank(command)
 
+        # 논리 함수
+        elif command_type == "if":
+            self._apply_if(command)
+        elif command_type == "and":
+            self._apply_logical_formula(command, "AND")
+        elif command_type == "or":
+            self._apply_logical_formula(command, "OR")
+
+        # 검색관련 명령어
+        elif command_type == "vlookup":
+            p = command.parameters
+            formula = f'=VLOOKUP({p["lookup_value"]}, {p["table_array"]}, {p["col_index"]}, {str(p["range_lookup"]).upper()})'
+            self.active_sheet[command.target_range] = formula
+        elif command_type == "hlookup":
+            p = command.parameters
+            formula = f'=HLOOKUP({p["lookup_value"]}, {p["table_array"]}, {p["row_index"]}, {str(p["range_lookup"]).upper()})'
+            self.active_sheet[command.target_range] = formula
+        elif command_type == "index":
+            p = command.parameters
+            formula = f'=INDEX({p["array"]}, {p["row_num"]}, {p["col_num"]})'
+            self.active_sheet[command.target_range] = formula
+        elif command_type == "match":
+            p = command.parameters
+            formula = f'=MATCH({p["lookup_value"]}, {p["lookup_array"]}, {p["match_type"]})'
+            self.active_sheet[command.target_range] = formula
+
         # 서식 관련 명령어
         elif command_type == "bold":
             self._apply_bold(command)
@@ -217,6 +243,18 @@ class ExcelManipulator:
         if not value:
             return
         self.active_sheet[command.target_range] = f"=ISBLANK({value})"
+
+    def _apply_if(self, command: ExcelCommand) -> None:
+        c = command.parameters
+        formula = f'=IF({c["condition"]}, "{c["true_value"]}", "{c["false_value"]}")'
+        self.active_sheet[command.target_range] = formula
+
+    def _apply_logical_formula(self, command: ExcelCommand, func_name: str) -> None:
+        conditions = command.parameters.get("conditions", [])
+        joined = ",".join(conditions)
+        formula = f"={func_name.upper()}({joined})"
+        self.active_sheet[command.target_range] = formula
+
 
     # 서식 관련 명령어 구현
     def _apply_bold(self, command: ExcelCommand) -> None:

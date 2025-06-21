@@ -260,6 +260,50 @@ class LLMService:
         if command_type in ["sum", "average", "count", "max", "min"]:
             return {"range": parameters[0]} if parameters else {}
 
+        #논리 함수
+        if command_type == "if":
+            return {
+                "condition": parameters[0],
+                "true_value": parameters[1],
+                "false_value": parameters[2] if len(parameters) > 2 else ""
+            }
+
+        if command_type in ["and", "or"]:
+            return {
+                "conditions": parameters
+            }
+
+        # 검색 함수
+        if command_type == "vlookup":
+            return {
+                "lookup_value": parameters[0],
+                "table_array": parameters[1],
+                "col_index": parameters[2],
+                "range_lookup": parameters[3] if len(parameters) > 3 else True
+            }
+
+        if command_type == "hlookup":
+            return {
+                "lookup_value": parameters[0],
+                "table_array": parameters[1],
+                "row_index": parameters[2],
+                "range_lookup": parameters[3] if len(parameters) > 3 else True
+            }
+
+        if command_type == "index":
+            return {
+                "array": parameters[0],
+                "row_num": parameters[1],
+                "col_num": parameters[2] if len(parameters) > 2 else 1
+            }
+
+        if command_type == "match":
+            return {
+                "lookup_value": parameters[0],
+                "lookup_array": parameters[1],
+                "match_type": parameters[2] if len(parameters) > 2 else 0
+            }
+
         # 값 설정
         if command_type == "set_value":
             return {"value": parameters[0]} if parameters else {}
