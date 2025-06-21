@@ -20,5 +20,5 @@ def login_route(data: LoginRequest, db: Session = Depends(get_db_session)):
     user = login(db, data.username, data.password)
     return LoginResponse(
         username=user.username,
-        userId=user.userId
+        userId=user.id
     )

@@ -119,13 +119,11 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
     # ✅ 8. 변경사항 모두 커밋
     db.commit()
 
-    tmp = _excel_bytes_to_json(modified_excel_bytes)
-    print(tmp)
     # ✅ 9. 수정된 엑셀 sheet를 base64로 인코딩하여 JSON 응답에 포함
     encoded_sheet = base64.b64encode(modified_excel_bytes).decode('utf-8')
 
     return LLMResponse(
-        sheetData=b"",  # FIXME: encoded_sheet로 바꿔야 정상 작동
+        sheetData=encoded_sheet,
         message = MessageResponse(
             id= aiMessage.id,
             content=aiMessage.content,
