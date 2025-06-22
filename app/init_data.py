@@ -18,9 +18,9 @@ def seed_initial_data():
             print("✅ admin 사용자 추가됨")
 
         # 2. ChatSession 생성
-        session = db.query(ChatSession).filter(ChatSession.name == "2025-05-25_기본세션").first()
+        session = db.query(ChatSession).filter(ChatSession.name == "2025-06-23_기본세션").first()
         if not session:
-            session = ChatSession(userId=user.id, name="2025-05-25_기본세션")
+            session = ChatSession(userId=user.id, name="2025-06-23_기본세션")
             db.add(session)
             db.flush()
             print("✅ 기본 채팅 세션 추가됨")

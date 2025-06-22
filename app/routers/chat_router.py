@@ -48,7 +48,7 @@ async def create_session_route(
 @router.post(
     "/sessions/{sessionId}/message",
     summary="Save user message and sheet data, get LLM response",
-    response_model=LLMResponse,
+    response_model=LLMMessageResponse,
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Message saved and LLM response returned"},
@@ -116,4 +116,3 @@ def get_session_messages_route(sessionId: int, db: Session = Depends(get_db_sess
         sheetData=encoded_sheet,
         messages=session.messages
     )
-

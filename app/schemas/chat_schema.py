@@ -7,7 +7,7 @@ from app.models.message import SenderType
 
 class ChatSessionResponse(BaseModel):
     """Chat Session 응답 스키마 """
-    sessionId: int = Field(..., alias="id")  # ← 여기!
+    sessionId: int = Field(..., alias="id")
     userId: int
     name: str | None = None
     modifiedAt: datetime
@@ -37,7 +37,7 @@ class ChatSessionUpdateRequest(BaseModel):
     name: str  # 수정할 제목
 
 
-class LLMResponse(BaseModel):
+class LLMMessageResponse(BaseModel):
     """ message send에 대한 LLM 응답 스키마 """
     sheetData: Any
     message: MessageResponse

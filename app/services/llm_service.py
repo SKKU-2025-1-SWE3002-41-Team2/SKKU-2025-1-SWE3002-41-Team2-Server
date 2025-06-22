@@ -11,8 +11,7 @@ import io
 
 from openpyxl import load_workbook
 
-from app.schemas.llm_schema import LLMResultInternal, ResponseResult
-from app.services.excel_service import create_empty_excel
+from app.schemas.llm_schema import ResponseResult
 from app.services.llm_prompt_service import (
     SYSTEM_PROMPT,
     RESPONSE_SCHEMA,
@@ -471,7 +470,7 @@ def get_llm_response(
         session_summary: 이전 대화 요약 (옵션)
 
     Returns:
-        LLMResultInternal: LLM 응답 결과
+        ResponseResult: LLM 응답 결과
     """
     service = LLMService()
     return service.get_llm_response(user_command, excel_bytes, session_summary)

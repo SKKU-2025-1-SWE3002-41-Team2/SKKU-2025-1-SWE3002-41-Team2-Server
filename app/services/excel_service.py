@@ -6,7 +6,6 @@ openpyxl을 사용하여 엑셀 파일을 직접 조작하는 기능을 제공�
 import io
 from typing import List, Any, Optional
 from openpyxl import load_workbook, Workbook
-from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import column_index_from_string
 import re
 
@@ -83,6 +82,7 @@ class ExcelManipulator:
         elif command_type == "min":
             self._apply_min(command)
 
+        # 텍스트 관련 명령어
         elif command_type == "left":
             self._apply_left(command)
         elif command_type == "right":
@@ -96,7 +96,7 @@ class ExcelManipulator:
         elif command_type == "isblank":
             self._apply_isblank(command)
 
-        # 논리 함수
+        # 논리 관련 명령어
         elif command_type == "if":
             self._apply_if(command)
         elif command_type == "and":
@@ -104,7 +104,7 @@ class ExcelManipulator:
         elif command_type == "or":
             self._apply_logical_formula(command, "OR")
 
-        # 검색관련 명령어
+        # 검색 관련 명령어
         elif command_type == "vlookup":
             p = command.parameters
             formula = f'=VLOOKUP({p["lookup_value"]}, {p["table_array"]}, {p["col_index"]}, {str(p["range_lookup"]).upper()})'
@@ -132,7 +132,7 @@ class ExcelManipulator:
         elif command_type == "unmerge":
             self._unmerge_cells(command)
 
-        # ----- 조건부 함수 -----
+        # 조건부 함수 명령어
         elif command_type == "countif":
             self._apply_countif(command)
         elif command_type == "sumif":
@@ -140,7 +140,7 @@ class ExcelManipulator:
         elif command_type == "averageif":
             self._apply_averageif(command)
 
-        # ----- 텍스트 처리 함수 -----
+        # 텍스트 처리 함수 명령어
         elif command_type == "trim":
             self._apply_trim(command)
         elif command_type == "upper":
@@ -179,7 +179,9 @@ class ExcelManipulator:
         else:
             print(f"지원하지 않는 명령어: {command_type}")
 
-    # 함수 관련 명령어 구현
+    # ──────────────────────────────
+    # 수식 함수
+    # ──────────────────────────────
     def _apply_sum(self, command: ExcelCommand) -> None:
         """SUM 함수를 적용합니다."""
         if command.parameters and "range" in command.parameters:
@@ -214,6 +216,7 @@ class ExcelManipulator:
             range_str = command.parameters["range"]
             formula = f"=MIN({range_str})"
             self.active_sheet[command.target_cell] = formula
+
     def _apply_concatenate(self, command: ExcelCommand):
         """CONCATENATE 함수를 적용합니다."""
         values = command.parameters.get("values", [])
@@ -492,7 +495,6 @@ class ExcelManipulator:
                 formula = f"=IFS({', '.join(quoted)})"
                 self.active_sheet[command.target_cell] = formula
 
-    # 고급 검색 함수 관련 메소드들
     def _apply_xlookup(self, command: ExcelCommand) -> None:
         """
         XLOOKUP 함수를 적용합니다.
@@ -725,7 +727,7 @@ class ExcelManipulator:
         print(f"{'=' * 50}\n")
 
 
-# process_excel_with_commands 함수 수정
+
 def process_excel_with_commands(
         excel_bytes: bytes,
         commands: Any

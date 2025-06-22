@@ -5,7 +5,7 @@ from app.services import chat_service
 from app.models import ChatSession, Message, ChatSheet, User
 from app.exceptions.http_exceptions import SessionNotFoundException, UserNotFoundException
 from app.utils.timezone import KST
-from app.schemas.chat_schema import ChatSessionCreateResponse, LLMResponse, MessageResponse
+from app.schemas.chat_schema import ChatSessionCreateResponse, LLMMessageResponse, MessageResponse
 
 # [GET] 사용자의 세션 목록을 정상적으로 불러올 수 있는지 테스트
 def test_get_sessions_success():
@@ -157,7 +157,7 @@ def test_create_session_flow(mock_save_msg, mock_validate_user):
     mock_db.add = MagicMock()
 
     # save_message_and_response 결과도 더미 반환
-    mock_save_msg.return_value = LLMResponse(
+    mock_save_msg.return_value = LLMMessageResponse(
         sheetData="base64data",
         message=MessageResponse(id=1, content="reply", createdAt=datetime.now(), senderType="AI")
     )
@@ -206,7 +206,7 @@ def test_save_message_and_response_flow(
 
     result = chat_service.save_message_and_response(1, "Hi", b"old-bytes", mock_db)
 
-    assert isinstance(result, LLMResponse)
+    assert isinstance(result, LLMMessageResponse)
     assert result.message.content == "ai-reply"
     mock_insert_msg.assert_called()
     mock_get_llm.assert_called_once()

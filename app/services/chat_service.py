@@ -8,7 +8,7 @@ from app.models import ChatSession, Message, ChatSheet, User
 from typing import cast, List, Optional, Any
 
 
-from app.schemas.chat_schema import ChatSessionCreateResponse, MessageResponse, LLMResponse
+from app.schemas.chat_schema import ChatSessionCreateResponse, MessageResponse, LLMMessageResponse
 
 from app.services.llm_service import get_llm_response
 from app.services.excel_service import process_excel_with_commands
@@ -107,7 +107,7 @@ def create_session(userId: int, message: str, sheetData: bytes, db: Session) -> 
         message=res.message
     )
 
-def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db: Session) -> LLMResponse:
+def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db: Session) -> LLMMessageResponse:
     """
        세션에 사용자 메시지를 저장하고 LLM으로부터 응답을 받아 처리 및 저장합니다.
 
@@ -118,12 +118,12 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
            db (Session): SQLAlchemy DB 세션
 
        Returns:
-           LLMResponse: LLM의 응답 메시지 및 수정된 엑셀 시트 데이터 (Base64 인코딩)
+           LLMMessageResponse: LLM의 응답 메시지 및 수정된 엑셀 시트 데이터 (Base64 인코딩)
 
        Raises:
            SessionNotFoundException: 세션이 존재하지 않을 경우
        """
-    # ✅ 1. 사용자 메시지를 DB에 저장 (USER)
+    # 1. 사용자 메시지를 DB에 저장 (USER)
     saved_message = insert_message_to_db(
         sessionId=sessionId,
         content=message,
@@ -131,12 +131,12 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
         db=db
     )
 
-    # ✅ 2. 세션 정보를 DB에서 조회 (없으면 예외 발생)
+    # 2. 세션 정보를 DB에서 조회 (없으면 예외 발생)
     session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
     if session is None:
         raise SessionNotFoundException()
 
-    # ✅ 3. LLM을 호출하여 명령어 해석 및 응답 생성
+    # 3. LLM을 호출하여 명령어 해석 및 응답 생성
     response_result = get_llm_response(
         #chat_session의 summary를 가져오도록 구현 필요
         session_summary=session.summary,
@@ -144,42 +144,43 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
         excel_bytes =sheetData
     )
 
-    # ✅ 4. LLM이 생성한 명령어 시퀀스를 바탕으로 엑셀 수정
+    # 4. LLM이 생성한 명령어 시퀀스를 바탕으로 엑셀 수정
     modified_excel_bytes = process_excel_with_commands(
         excel_bytes=sheetData,
         commands=response_result.cmd_seq  # ExcelCommand 리스트
     )
-    # ✅ 5. AI의 응답 메시지를 DB에 저장 (AI)
-    aiMessage= insert_message_to_db(
+
+    # 5. AI의 응답 메시지를 DB에 저장 (AI)
+    ai_message= insert_message_to_db(
         sessionId=sessionId,
         content=response_result.chat,
         senderType="AI",
         db=db
     )
 
-    # ✅ 6. 세션 요약 업데이트
+    # 6. 세션 요약 업데이트
     update_session_summary(
         sessionId=sessionId,
         summary=response_result.summary,
         db=db
     )
 
-    # ✅ 7. 수정된 엑셀 데이터를 chat_sheet에 업서트
+    # 7. 수정된 엑셀 데이터를 chat_sheet에 업서트
     upsert_chat_sheet(sessionId, modified_excel_bytes, db)
 
-    # ✅ 8. 변경사항 모두 커밋
+    # 8. 변경사항 모두 커밋
     db.commit()
 
-    # ✅ 9. 수정된 엑셀 sheet를 base64로 인코딩하여 JSON 응답에 포함
+    # 9. 수정된 엑셀 sheet를 base64로 인코딩하여 JSON 응답에 포함
     encoded_sheet = base64.b64encode(modified_excel_bytes).decode('utf-8')
 
-    return LLMResponse(
+    return LLMMessageResponse(
         sheetData=encoded_sheet,
         message = MessageResponse(
-            id= aiMessage.id,
-            content=aiMessage.content,
-            createdAt=aiMessage.createdAt,
-            senderType=aiMessage.senderType
+            id= ai_message.id,
+            content=ai_message.content,
+            createdAt=ai_message.createdAt,
+            senderType=ai_message.senderType
         )
     )
 
