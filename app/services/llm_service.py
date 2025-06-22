@@ -76,14 +76,20 @@ class LLMService:
             # 5. ExcelCommand 객체 리스트로 변환
             excel_commands = self._convert_to_excel_commands(parsed_response["commands"])
 
-            print("summary : " + session_summary + parsed_response["summary"])
+            print("summary : " + session_summary + parsed_response["summary"] + " [end] ")
+
+
+            print("더해진 로그")
+            print(session_summary+parsed_response["summary"])
 
             # 6. 결과 반환
             return ResponseResult(
                 chat=parsed_response["response"],
                 cmd_seq=excel_commands,  # ExcelCommand 객체 리스트를 그대로 반환
-                summary=session_summary + " [end] " + parsed_response["summary"]
+                summary=session_summary + parsed_response["summary"] + " [end] "
             )
+
+
 
         except Exception as e:
             print(f"LLM 처리 중 오류 발생: {str(e)}")
