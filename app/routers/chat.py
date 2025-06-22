@@ -38,7 +38,7 @@ async def create_session_route(
     db: Session = Depends(get_db_session)
 ):
     if message is None and sheetData is None:
-        raise EmptyMessageAndSheetException
+        raise EmptyMessageAndSheetException()
 
     # sheetData를 byte로 읽기
     file_bytes = await sheetData.read() if sheetData is not None else None
