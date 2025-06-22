@@ -331,7 +331,7 @@ RESPONSE_SCHEMA = {
                                     # 기본 함수
                                     "sum", "average", "count", "max", "min",
                                     # 데이터 조작
-                                    "set_value", "clear", "merge", "unmerge",
+                                    "set_value", "clear",
                                     # 논리 함수
                                     "if", "and", "or", "iferror", "ifna", "ifs",
                                     # 조건부 연산
