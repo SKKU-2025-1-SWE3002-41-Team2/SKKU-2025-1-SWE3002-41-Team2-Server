@@ -76,11 +76,13 @@ class LLMService:
             # 5. ExcelCommand 객체 리스트로 변환
             excel_commands = self._convert_to_excel_commands(parsed_response["commands"])
 
+            print("summary : " + session_summary + parsed_response["summary"])
+
             # 6. 결과 반환
             return ResponseResult(
                 chat=parsed_response["response"],
                 cmd_seq=excel_commands,  # ExcelCommand 객체 리스트를 그대로 반환
-                summary=session_summary+parsed_response["summary"]
+                summary=session_summary + " [end] " + parsed_response["summary"]
             )
 
         except Exception as e:
