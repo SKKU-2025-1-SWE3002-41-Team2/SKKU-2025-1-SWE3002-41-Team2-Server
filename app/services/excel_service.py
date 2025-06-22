@@ -435,10 +435,12 @@ class ExcelManipulator:
             command: ExcelCommand 객체
                 - parameters[0]: 검사할 수식 또는 범위
                 - parameters[1]: 오류 시 반환할 값
+                "test_formula": parameters[0],
+                "error_value": parameters[1]
         """
         if command.parameters and len(command.parameters) >= 2:
-            test_formula = command.parameters[0]
-            error_value = command.parameters[1]
+            test_formula = command.parameters["test_formula"]
+            error_value = command.parameters["error_value"]
 
             # IFERROR 수식 생성
             formula = f"=IFERROR({test_formula}, {error_value})"
@@ -455,8 +457,8 @@ class ExcelManipulator:
                 - parameters[1]: #N/A 오류 시 반환할 값
         """
         if command.parameters and len(command.parameters) >= 2:
-            test_formula = command.parameters[0]
-            na_value = command.parameters[1]
+            test_formula = command.parameters["test_formula"]
+            na_value = command.parameters["na_value"]
 
             # IFNA 수식 생성
             formula = f"=IFNA({test_formula}, {na_value})"
@@ -469,15 +471,17 @@ class ExcelManipulator:
 
         Args:
             command: ExcelCommand 객체
-                - parameters: [조건1, 값1, 조건2, 값2, ...] 형태의 배열
+                - parameters["conditions_values"]: [조건1, 값1, 조건2, 값2, ...] 형태의 배열
         """
-        if command.parameters and len(command.parameters) >= 2:
+        if command.parameters and "conditions_values" in command.parameters:
+            conditions_values_list = command.parameters["conditions_values"]
+
             # 조건과 값의 쌍으로 수식 구성
             conditions_values = []
-            for i in range(0, len(command.parameters), 2):
-                if i + 1 < len(command.parameters):
-                    condition = command.parameters[i]
-                    value = command.parameters[i + 1]
+            for i in range(0, len(conditions_values_list), 2):
+                if i + 1 < len(conditions_values_list):
+                    condition = conditions_values_list[i]
+                    value = conditions_values_list[i + 1]
                     conditions_values.append(f"{condition}, {value}")
 
             if conditions_values:
@@ -492,27 +496,32 @@ class ExcelManipulator:
 
         Args:
             command: ExcelCommand 객체
-                - parameters[0]: 찾을 값
-                - parameters[1]: 찾을 범위
-                - parameters[2]: 반환할 범위
-                - parameters[3]: (선택) 찾지 못했을 때 반환할 값
-                - parameters[4]: (선택) 일치 모드
-                - parameters[5]: (선택) 검색 모드
+                - parameters["lookup_value"]: 찾을 값
+                - parameters["lookup_array"]: 찾을 범위
+                - parameters["return_array"]: 반환할 범위
+                - parameters["if_not_found"]: (선택) 찾지 못했을 때 반환할 값
+                - parameters["match_mode"]: (선택) 일치 모드
+                - parameters["search_mode"]: (선택) 검색 모드
         """
-        if command.parameters and len(command.parameters) >= 3:
-            lookup_value = command.parameters[0]
-            lookup_array = command.parameters[1]
-            return_array = command.parameters[2]
+        if command.parameters and "lookup_value" in command.parameters and "lookup_array" in command.parameters and "return_array" in command.parameters:
+            lookup_value = command.parameters["lookup_value"]
+            lookup_array = command.parameters["lookup_array"]
+            return_array = command.parameters["return_array"]
 
             # 기본 XLOOKUP 수식
             formula_parts = [lookup_value, lookup_array, return_array]
 
             # 선택적 매개변수 추가
-            if len(command.parameters) > 3:
-                formula_parts.extend(command.parameters[3:])
+            if "if_not_found" in command.parameters:
+                formula_parts.append(command.parameters["if_not_found"])
+            if "match_mode" in command.parameters:
+                formula_parts.append(command.parameters["match_mode"])
+            if "search_mode" in command.parameters:
+                formula_parts.append(command.parameters["search_mode"])
 
             formula = f"=XLOOKUP({', '.join(map(str, formula_parts))})"
             self.active_sheet[command.target_range] = formula
+
 
     def _apply_filter(self, command: ExcelCommand) -> None:
         """
@@ -521,16 +530,16 @@ class ExcelManipulator:
 
         Args:
             command: ExcelCommand 객체
-                - parameters[0]: 필터링할 범위
-                - parameters[1]: 조건
-                - parameters[2]: (선택) 조건에 맞는 값이 없을 때 반환할 값
+                - parameters["array"]: 필터링할 범위
+                - parameters["include"]: 조건
+                - parameters["if_empty"]: (선택) 조건에 맞는 값이 없을 때 반환할 값
         """
-        if command.parameters and len(command.parameters) >= 2:
-            array = command.parameters[0]
-            include = command.parameters[1]
+        if command.parameters and "array" in command.parameters and "include" in command.parameters:
+            array = command.parameters["array"]
+            include = command.parameters["include"]
 
-            if len(command.parameters) >= 3:
-                if_empty = command.parameters[2]
+            if "if_empty" in command.parameters:
+                if_empty = command.parameters["if_empty"]
                 formula = f"=FILTER({array}, {include}, {if_empty})"
             else:
                 formula = f"=FILTER({array}, {include})"
@@ -544,21 +553,24 @@ class ExcelManipulator:
 
         Args:
             command: ExcelCommand 객체
-                - parameters[0]: 고유값을 추출할 범위
-                - parameters[1]: (선택) by_col - True면 열 기준, False면 행 기준
-                - parameters[2]: (선택) exactly_once - True면 정확히 한 번만 나타나는 값만 반환
+                - parameters["array"]: 고유값을 추출할 범위
+                - parameters["by_col"]: (선택) True면 열 기준, False면 행 기준
+                - parameters["exactly_once"]: (선택) True면 정확히 한 번만 나타나는 값만 반환
         """
-        if command.parameters and len(command.parameters) >= 1:
-            array = command.parameters[0]
+        if command.parameters and "array" in command.parameters:
+            array = command.parameters["array"]
 
             # 기본 UNIQUE 수식
             formula_parts = [array]
 
             # 선택적 매개변수 추가
-            if len(command.parameters) > 1:
-                by_col = command.parameters[1] if len(command.parameters) > 1 else "FALSE"
-                exactly_once = command.parameters[2] if len(command.parameters) > 2 else "FALSE"
-                formula_parts.extend([by_col, exactly_once])
+            if "by_col" in command.parameters:
+                by_col = command.parameters["by_col"]
+                formula_parts.append(str(by_col).upper())
+
+                if "exactly_once" in command.parameters:
+                    exactly_once = command.parameters["exactly_once"]
+                    formula_parts.append(str(exactly_once).upper())
 
             formula = f"=UNIQUE({', '.join(map(str, formula_parts))})"
             self.active_sheet[command.target_range] = formula
@@ -631,11 +643,11 @@ class ExcelManipulator:
                 - parameters[2]: (선택) 순서 - 0 또는 생략: 내림차순, 1: 오름차순
         """
         if command.parameters and len(command.parameters) >= 2:
-            number = command.parameters[0]
-            ref = command.parameters[1]
+            number = command.parameters["number"]
+            ref = command.parameters["ref"]
 
             # 순서 매개변수 (기본값: 0 - 내림차순)
-            order = command.parameters[2] if len(command.parameters) > 2 else "0"
+            order = command.parameters["order"] if len(command.parameters) > 2 else "0"
 
             formula = f"=RANK.EQ({number}, {ref}, {order})"
             self.active_sheet[command.target_range] = formula
@@ -706,19 +718,6 @@ class ExcelManipulator:
                 print(f"{display_value:>12}", end="")
             print()  # 행 끝에서 줄바꿈
 
-        # 수식 정보 별도 출력
-        print(f"\n[수식 정보]")
-        formula_found = False
-        for row in range(1, max_row + 1):
-            for col in range(1, max_col + 1):
-                cell = ws.cell(row, col)
-                if cell.value and isinstance(cell.value, str) and cell.value.startswith('='):
-                    print(f"  {cell.coordinate}: {cell.value}")
-                    formula_found = True
-
-        if not formula_found:
-            print("  수식이 없습니다.")
-
         print(f"{'=' * 50}\n")
 
 
@@ -753,7 +752,7 @@ def process_excel_with_commands(
 
     manipulator.execute_commands(commands)
 
-    manipulator.log_worksheet_contents("명령어 적용 전 워크시트 상태")
+    manipulator.log_worksheet_contents("명령어 적용 후 워크시트 상태")
 
     # 결과 저장 및 반환
     return manipulator.save_to_bytes()
