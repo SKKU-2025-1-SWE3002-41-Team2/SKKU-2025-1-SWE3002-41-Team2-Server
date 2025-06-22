@@ -18,23 +18,37 @@ from app.utils.timezone import KST
 """
 Interface Summary:
 - def get_sessions(userId: int, db: Session) -> List[ChatSession]
-- def create_session(data: ChatSessionCreateRequest, db: Session) -> ChatSession:
+- def get_messages(session_id: int, db: Session) -> ChatSession
+- def create_session(userId: int, message: str, sheetData: bytes, db: Session) -> ChatSessionCreateResponse
+- def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db: Session) -> LLMResponse
 - def delete_session(sessionId: int, db: Session) -> None
 - def modify_session(sessionId: int, newName: str, db: Session) -> ChatSession
-- def save_message_and_response(sessionId: int, data: MessageRequest, db: Session) -> LLMResponse
 
 Helper Summary:
 - def insert_message_to_db(sessionId: int, content: str, senderType: str, db: Session) -> Message
 - def upsert_chat_sheet(sessionId: int, sheetData: Optional[Any], db: Session) -> ChatSheet
+- def update_session_summary(sessionId: int, summary: str, db: Session) -> None
 - def validate_user_exists(userId: int, db: Session) -> None
-- def update_session_summary(sessionId: int, summary: str, db: Session) -> None 
-- def touch_session(sessionId: int, db: Session)
+- def touch_session(sessionId: int, db: Session) -> None
 """
 
 
 
 ### read only ###
 def get_sessions(userId: int, db: Session) -> List[ChatSession]:
+    """
+    주어진 사용자 ID에 해당하는 모든 채팅 세션을 최신순으로 조회합니다.
+
+    Args:
+        userId (int): 사용자 ID
+        db (Session): SQLAlchemy DB 세션
+
+    Returns:
+        List[ChatSession]: 채팅 세션 리스트
+
+    Raises:
+        SessionNotFoundException: 세션이 존재하지 않을 경우
+    """
     sessions = (
         db.query(ChatSession)
         .filter(ChatSession.userId == userId)
@@ -43,19 +57,43 @@ def get_sessions(userId: int, db: Session) -> List[ChatSession]:
     )
 
     if not sessions:
-        raise SessionNotFoundException
+        raise SessionNotFoundException()
 
     return cast(List[ChatSession], sessions)
 
 def get_messages(session_id: int, db: Session) -> ChatSession:
+    """
+    특정 세션 ID에 해당하는 채팅 세션을 조회하고 메시지를 포함합니다.
+
+    Args:
+        session_id (int): 세션 ID
+        db (Session): SQLAlchemy DB 세션
+
+    Returns:
+        ChatSession: 해당 세션 객체
+
+    Raises:
+        SessionNotFoundException: 세션이 존재하지 않을 경우
+    """
     session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
     if not session:
-        raise SessionNotFoundException
+        raise SessionNotFoundException()
     return session
 
 ### modify data ###
 def create_session(userId: int, message: str, sheetData: bytes, db: Session) -> ChatSessionCreateResponse:
+    """
+    새로운 채팅 세션을 생성하고 첫 사용자 메시지를 저장한 뒤 LLM 응답을 반환합니다.
 
+    Args:
+        userId (int): 사용자 ID
+        message (str): 사용자 입력 메시지
+        sheetData (bytes): 엑셀 시트 데이터
+        db (Session): SQLAlchemy DB 세션
+
+    Returns:
+        ChatSessionCreateResponse: 생성된 세션 정보 및 초기 응답 데이터
+    """
     validate_user_exists(userId, db)
 
     session = ChatSession(userId=userId, name="New Session")
@@ -71,6 +109,21 @@ def create_session(userId: int, message: str, sheetData: bytes, db: Session) -> 
     )
 
 def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db: Session) -> LLMResponse:
+    """
+       세션에 사용자 메시지를 저장하고 LLM으로부터 응답을 받아 처리 및 저장합니다.
+
+       Args:
+           sessionId (int): 채팅 세션 ID
+           message (str): 사용자 입력 메시지
+           sheetData (bytes): 엑셀 시트 데이터
+           db (Session): SQLAlchemy DB 세션
+
+       Returns:
+           LLMResponse: LLM의 응답 메시지 및 수정된 엑셀 시트 데이터 (Base64 인코딩)
+
+       Raises:
+           SessionNotFoundException: 세션이 존재하지 않을 경우
+       """
     # ✅ 1. 사용자 메시지를 DB에 저장 (USER)
     saved_message = insert_message_to_db(
         sessionId=sessionId,
@@ -82,10 +135,9 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
     # ✅ 2. 세션 정보를 DB에서 조회 (없으면 예외 발생)
     session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
     if session is None:
-        raise SessionNotFoundException
+        raise SessionNotFoundException()
 
     # ✅ 3. LLM을 호출하여 명령어 해석 및 응답 생성
-    # FIXIT: 아래 user_command는 하드코딩되어 있어 나중에 실제 메시지로 대체 필요
     response_result = get_llm_response(
         #chat_session의 summary를 가져오도록 구현 필요
         session_summary=session.summary,
@@ -134,17 +186,41 @@ def save_message_and_response(sessionId: int, message: str, sheetData: bytes, db
 
 
 def delete_session(sessionId: int, db: Session) -> None:
+    """
+    특정 세션 ID에 해당하는 채팅 세션을 삭제합니다.
+
+    Args:
+        sessionId (int): 세션 ID
+        db (Session): SQLAlchemy DB 세션
+
+    Raises:
+        SessionNotFoundException: 세션이 존재하지 않을 경우
+    """
     session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
     if not session:
-        raise SessionNotFoundException
+        raise SessionNotFoundException()
 
     db.delete(session)
     db.commit()
 
 def modify_session(sessionId: int, newName: str, db: Session) -> ChatSession:
+    """
+    특정 세션의 이름을 수정합니다.
+
+    Args:
+        sessionId (int): 세션 ID
+        newName (str): 새 세션 이름
+        db (Session): SQLAlchemy DB 세션
+
+    Returns:
+        ChatSession: 이름이 수정된 세션 객체
+
+    Raises:
+        SessionNotFoundException: 세션이 존재하지 않을 경우
+    """
     session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
     if not session:
-        raise SessionNotFoundException
+        raise SessionNotFoundException()
 
     session.name = newName
     db.commit()
@@ -153,6 +229,18 @@ def modify_session(sessionId: int, newName: str, db: Session) -> ChatSession:
 
 #### helper ####
 def insert_message_to_db(sessionId: int, content: str, senderType: str, db: Session) -> Message:
+    """
+    특정 세션에 메시지를 추가로 저장합니다.
+
+    Args:
+        sessionId (int): 세션 ID
+        content (str): 메시지 내용
+        senderType (str): 메시지 발신자 타입 ("USER" 또는 "AI")
+        db (Session): SQLAlchemy DB 세션
+
+    Returns:
+        Message: 저장된 메시지 객체
+    """
     message = Message(
         sessionId=sessionId,
         content=content,
@@ -164,6 +252,17 @@ def insert_message_to_db(sessionId: int, content: str, senderType: str, db: Sess
     return message
 
 def upsert_chat_sheet(sessionId: int, sheetData: Optional[Any], db: Session) -> ChatSheet:
+    """
+    세션에 대응하는 ChatSheet 데이터를 삽입하거나 갱신합니다.
+
+    Args:
+        sessionId (int): 세션 ID
+        sheetData (bytes | None): 엑셀 데이터
+        db (Session): SQLAlchemy DB 세션
+
+    Returns:
+        ChatSheet: 삽입되거나 갱신된 시트 객체
+    """
     sheet = db.query(ChatSheet).filter(ChatSheet.sessionId == sessionId).first()
 
     if sheet:
@@ -180,17 +279,45 @@ def upsert_chat_sheet(sessionId: int, sheetData: Optional[Any], db: Session) -> 
     return sheet
 
 def update_session_summary(sessionId: int, summary: str, db: Session) -> None:
+    """
+        세션의 summary 필드를 업데이트합니다.
+
+        Args:
+            sessionId (int): 세션 ID
+            summary (str): 업데이트할 요약 정보
+            db (Session): SQLAlchemy DB 세션
+
+        Raises:
+            SessionNotFoundException: 세션이 존재하지 않을 경우
+        """
     session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
     if not session:
-        raise SessionNotFoundException
+        raise SessionNotFoundException()
 
     session.summary = summary
 
 def validate_user_exists(userId: int, db: Session) -> None:
+    """
+       해당 사용자 ID가 존재하는지 검증합니다.
+
+       Args:
+           userId (int): 사용자 ID
+           db (Session): SQLAlchemy DB 세션
+
+       Raises:
+           UserNotFoundException: 사용자가 존재하지 않을 경우
+       """
     if not db.query(User).filter(User.id == userId).first():
-        raise UserNotFoundException
+        raise UserNotFoundException()
 
 def touch_session(sessionId: int, db: Session):
+    """
+       세션의 modifiedAt 필드를 현재 시각으로 갱신합니다.
+
+       Args:
+           sessionId (int): 세션 ID
+           db (Session): SQLAlchemy DB 세션
+    """
     session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
     if session:
         session.modifiedAt = datetime.now(KST)
