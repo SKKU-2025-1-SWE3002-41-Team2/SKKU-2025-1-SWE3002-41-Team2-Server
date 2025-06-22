@@ -1,14 +1,13 @@
 import base64
-import json
 from datetime import datetime
 
 from sqlalchemy.orm import Session
-from app.exceptions.http_exceptions import SessionNotFoundException, EmptyMessageAndSheetException, \
+from app.exceptions.http_exceptions import SessionNotFoundException, \
     UserNotFoundException
 from app.models import ChatSession, Message, ChatSheet, User
 from typing import cast, List, Optional, Any
 
-from app.routers.llm import _excel_bytes_to_json
+
 from app.schemas.chat import ChatSessionCreateResponse, MessageResponse, LLMResponse
 
 from app.services.llm import get_llm_response
