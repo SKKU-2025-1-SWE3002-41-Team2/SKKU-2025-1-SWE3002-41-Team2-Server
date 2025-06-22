@@ -474,17 +474,15 @@ class ExcelManipulator:
 
         Args:
             command: ExcelCommand 객체
-                - parameters["conditions_values"]: [조건1, 값1, 조건2, 값2, ...] 형태의 배열
+                - parameters: [조건1, 값1, 조건2, 값2, ...] 형태의 배열
         """
-        if command.parameters and "conditions_values" in command.parameters:
-            conditions_values_list = command.parameters["conditions_values"]
-
+        if command.parameters and len(command.parameters) >= 2:
             # 조건과 값의 쌍으로 수식 구성
             conditions_values = []
-            for i in range(0, len(conditions_values_list), 2):
-                if i + 1 < len(conditions_values_list):
-                    condition = conditions_values_list[i]
-                    value = conditions_values_list[i + 1]
+            for i in range(0, len(command.parameters), 2):
+                if i + 1 < len(command.parameters):
+                    condition = command.parameters[i]
+                    value = command.parameters[i + 1]
                     conditions_values.append(f"{condition}, {value}")
 
             if conditions_values:
