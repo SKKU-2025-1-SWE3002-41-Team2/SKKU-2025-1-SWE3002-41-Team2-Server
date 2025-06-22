@@ -37,8 +37,6 @@ class ChatSessionUpdateRequest(BaseModel):
     name: str  # 수정할 제목
 
 
-
-
 class LLMResponse(BaseModel):
     """ message send에 대한 LLM 응답 스키마 """
     sheetData: Any

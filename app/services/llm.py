@@ -448,11 +448,7 @@ class LLMService:
             return {"text": parameters[0]} if parameters else {}
 
         if command_type == "round":
-            # ROUND(number, num_digits)
-            return {
-                "number": parameters[0],
-                "num_digits": int(parameters[1]) if len(parameters) > 1 else 0,
-            } if parameters else {}
+            return {"num_digits": int(parameters[0])} if parameters else {"num_digits": 0}
 
         if command_type == "isblank":
             # ISBLANK(value)

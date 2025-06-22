@@ -284,13 +284,49 @@ class ExcelManipulator:
             return
         self.active_sheet[command.target_range] = f"=LEN({text})"
 
-    def _apply_round(self, command: ExcelCommand):
-        """ROUND 함수를 적용합니다."""
-        number = command.parameters.get("number", "")
-        num_digits = command.parameters.get("num_digits", 0)
-        if not number:
-            return
-        self.active_sheet[command.target_range] = f"=ROUND({number},{num_digits})"
+    def _apply_round(self, command: ExcelCommand) -> None:
+        """
+        ROUND 함수를 적용합니다.
+        기존 셀의 값을 그대로 사용하여 지정된 소수점 자리수로 반올림합니다.
+
+        Args:
+            command: ExcelCommand 객체
+                - target_range: 반올림을 적용할 셀 범위
+                - parameters["num_digits"]: 반올림할 소수점 자릿수
+        """
+        # parameters가 딕셔너리이므로 키로 접근
+        num_digits = command.parameters.get("num_digits", 0)  # 기본값 0
+
+        def apply_round_to_cell(cell):
+            # 현재 셀의 값 가져오기
+            current_value = cell.value
+
+            # 값이 없으면 스킵
+            if current_value is None:
+                return
+
+            # 값을 문자열로 변환하여 처리
+            value_str = str(current_value)
+
+            # 수식인지 확인 (=로 시작하는 경우)
+            if value_str.startswith('='):
+                # = 기호 제거하고 수식 내용만 추출
+                formula_content = str(value_str)
+                # 앞의 =을 모두 제거
+                while formula_content.startswith('='):
+                    formula_content = formula_content[1:]
+                print(f"수식 감지: {formula_content} (소수점 자리수: {num_digits}) 기존 값: {value_str}")
+                # ROUND 함수로 감싸기
+                new_formula = f"=ROUND({formula_content}, {num_digits})"
+            else:
+                # 일반 값인 경우 그대로 사용
+                new_formula = f"=ROUND({current_value}, {num_digits})"
+
+            # 새로운 수식 적용
+            cell.value = new_formula
+
+        # 범위에 함수 적용
+        self._apply_to_range(command.target_range, apply_round_to_cell)
 
     def _apply_isblank(self, command: ExcelCommand):
         """ISBLANK 함수를 적용합니다."""
