@@ -204,7 +204,7 @@ class LLMService:
 
             # 각 명령어 검증
             for cmd in parsed["commands"]:
-                if not all(key in cmd for key in ["command_type", "target_range", "parameters"]):
+                if not all(key in cmd for key in ["command_type", "target_cell", "parameters"]):
                     raise ValueError("명령어에 필수 필드가 누락되었습니다")
                 if not isinstance(cmd["parameters"], list):
                     raise ValueError("parameters는 배열이어야 합니다")
@@ -241,7 +241,7 @@ class LLMService:
 
             excel_command = ExcelCommand(
                 command_type=cmd["command_type"],
-                target_range=cmd["target_range"],
+                target_cell=cmd["target_cell"],
                 parameters=parameters_dict
             )
             excel_commands.append(excel_command)

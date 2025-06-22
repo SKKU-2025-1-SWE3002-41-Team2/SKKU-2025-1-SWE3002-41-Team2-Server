@@ -95,7 +95,7 @@ class TestLLMService:
             "commands": [
                 {
                     "command_type": "sum",
-                    "target_range": "C4",
+                    "target_cell": "C4",
                     "parameters": ["B2:B3"]
                 }
             ],
@@ -145,7 +145,7 @@ class TestLLMService:
             "commands": [
                 {
                     "command_type": "sum",
-                    # target_range와 parameters 누락
+                    # target_cell와 parameters 누락
                 }
             ],
             "summary": "테스트 요약"
@@ -539,7 +539,7 @@ class TestLLMService:
         commands_dict = [
             {
                 "command_type": "sum",
-                "target_range": "C4",
+                "target_cell": "C4",
                 "parameters": ["B2:B3"]
             }
         ]
@@ -549,7 +549,7 @@ class TestLLMService:
         assert len(result) == 1
         assert isinstance(result[0], ExcelCommand)
         assert result[0].command_type == "sum"
-        assert result[0].target_range == "C4"
+        assert result[0].target_cell == "C4"
         assert result[0].parameters == {"range": "B2:B3"}
 
     def test_convert_to_excel_commands_multiple_commands(self):
@@ -557,12 +557,12 @@ class TestLLMService:
         commands_dict = [
             {
                 "command_type": "set_value",
-                "target_range": "A1",
+                "target_cell": "A1",
                 "parameters": ["이름"]
             },
             {
                 "command_type": "sum",
-                "target_range": "B4",
+                "target_cell": "B4",
                 "parameters": ["B2:B3"]
             }
         ]
@@ -573,12 +573,12 @@ class TestLLMService:
 
         # 첫 번째 명령어 검증
         assert result[0].command_type == "set_value"
-        assert result[0].target_range == "A1"
+        assert result[0].target_cell == "A1"
         assert result[0].parameters == {"value": "이름"}
 
         # 두 번째 명령어 검증
         assert result[1].command_type == "sum"
-        assert result[1].target_range == "B4"
+        assert result[1].target_cell == "B4"
         assert result[1].parameters == {"range": "B2:B3"}
 
     def test_convert_to_excel_commands_empty_list(self):
@@ -737,17 +737,17 @@ class TestComplexScenarios:
             "commands": [
                 {
                     "command_type": "set_value",
-                    "target_range": "A1",
+                    "target_cell": "A1",
                     "parameters": ["제품명"]
                 },
                 {
                     "command_type": "if",
-                    "target_range": "C2",
+                    "target_cell": "C2",
                     "parameters": ["B2>80", "우수", "보통"]
                 },
                 {
                     "command_type": "sum",
-                    "target_range": "B10",
+                    "target_cell": "B10",
                     "parameters": ["B2:B9"]
                 }
             ],

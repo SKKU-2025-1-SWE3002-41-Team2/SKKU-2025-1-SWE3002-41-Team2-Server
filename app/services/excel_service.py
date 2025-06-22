@@ -108,19 +108,19 @@ class ExcelManipulator:
         elif command_type == "vlookup":
             p = command.parameters
             formula = f'=VLOOKUP({p["lookup_value"]}, {p["table_array"]}, {p["col_index"]}, {str(p["range_lookup"]).upper()})'
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
         elif command_type == "hlookup":
             p = command.parameters
             formula = f'=HLOOKUP({p["lookup_value"]}, {p["table_array"]}, {p["row_index"]}, {str(p["range_lookup"]).upper()})'
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
         elif command_type == "index":
             p = command.parameters
             formula = f'=INDEX({p["array"]}, {p["row_num"]}, {p["col_num"]})'
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
         elif command_type == "match":
             p = command.parameters
             formula = f'=MATCH({p["lookup_value"]}, {p["lookup_array"]}, {p["match_type"]})'
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
         # 데이터 관련 명령어
         elif command_type == "set_value":
@@ -185,35 +185,35 @@ class ExcelManipulator:
         if command.parameters and "range" in command.parameters:
             range_str = command.parameters["range"]
             formula = f"=SUM({range_str})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_average(self, command: ExcelCommand) -> None:
         """AVERAGE 함수를 적용합니다."""
         if command.parameters and "range" in command.parameters:
             range_str = command.parameters["range"]
             formula = f"=AVERAGE({range_str})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_count(self, command: ExcelCommand) -> None:
         """COUNT 함수를 적용합니다."""
         if command.parameters and "range" in command.parameters:
             range_str = command.parameters["range"]
             formula = f"=COUNT({range_str})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_max(self, command: ExcelCommand) -> None:
         """MAX 함수를 적용합니다."""
         if command.parameters and "range" in command.parameters:
             range_str = command.parameters["range"]
             formula = f"=MAX({range_str})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_min(self, command: ExcelCommand) -> None:
         """MIN 함수를 적용합니다."""
         if command.parameters and "range" in command.parameters:
             range_str = command.parameters["range"]
             formula = f"=MIN({range_str})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
     def _apply_concatenate(self, command: ExcelCommand):
         """CONCATENATE 함수를 적용합니다."""
         values = command.parameters.get("values", [])
@@ -221,7 +221,7 @@ class ExcelManipulator:
             return
         # 각 값을 셀 참조나 문자열로 처리
         arg_str = ",".join(str(v) for v in values)
-        self.active_sheet[command.target_range] = f"=CONCATENATE({arg_str})"
+        self.active_sheet[command.target_cell] = f"=CONCATENATE({arg_str})"
 
     def _apply_left(self, command: ExcelCommand):
         """LEFT 함수를 적용합니다."""
@@ -229,7 +229,7 @@ class ExcelManipulator:
         num_chars = command.parameters.get("num_chars", 1)
         if not text:
             return
-        self.active_sheet[command.target_range] = f"=LEFT({text},{num_chars})"
+        self.active_sheet[command.target_cell] = f"=LEFT({text},{num_chars})"
 
     # ──────────────────────────────
     # 조건부 함수
@@ -240,7 +240,7 @@ class ExcelManipulator:
             range_str = command.parameters["range"]
             criteria = command.parameters["criteria"]
             formula = f"=COUNTIF({range_str}, {criteria})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_right(self, command: ExcelCommand):
         """RIGHT 함수를 적용합니다."""
@@ -248,7 +248,7 @@ class ExcelManipulator:
         num_chars = command.parameters.get("num_chars", 1)
         if not text:
             return
-        self.active_sheet[command.target_range] = f"=RIGHT({text},{num_chars})"
+        self.active_sheet[command.target_cell] = f"=RIGHT({text},{num_chars})"
 
     def _apply_sumif(self, command: ExcelCommand) -> None:
         """SUMIF 함수를 적용합니다."""
@@ -257,7 +257,7 @@ class ExcelManipulator:
             criteria = command.parameters["criteria"]
             sum_range = command.parameters.get("sum_range", range_str)
             formula = f"=SUMIF({range_str}, {criteria}, {sum_range})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_averageif(self, command: ExcelCommand) -> None:
         """AVERAGEIF 함수를 적용합니다."""
@@ -266,7 +266,7 @@ class ExcelManipulator:
             criteria = command.parameters["criteria"]
             avg_range = command.parameters.get("avg_range", range_str)
             formula = f"=AVERAGEIF({range_str}, {criteria}, {avg_range})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_mid(self, command: ExcelCommand):
         """MID 함수를 적용합니다."""
@@ -275,14 +275,14 @@ class ExcelManipulator:
         num_chars = command.parameters.get("num_chars", 1)
         if not text:
             return
-        self.active_sheet[command.target_range] = f"=MID({text},{start_num},{num_chars})"
+        self.active_sheet[command.target_cell] = f"=MID({text},{start_num},{num_chars})"
 
     def _apply_len(self, command: ExcelCommand):
         """LEN 함수를 적용합니다."""
         text = command.parameters.get("text", "")
         if not text:
             return
-        self.active_sheet[command.target_range] = f"=LEN({text})"
+        self.active_sheet[command.target_cell] = f"=LEN({text})"
 
     def _apply_round(self, command: ExcelCommand) -> None:
         """
@@ -291,7 +291,7 @@ class ExcelManipulator:
 
         Args:
             command: ExcelCommand 객체
-                - target_range: 반올림을 적용할 셀 범위
+                - target_cell: 반올림을 적용할 셀 범위
                 - parameters["num_digits"]: 반올림할 소수점 자릿수
         """
         # parameters가 딕셔너리이므로 키로 접근
@@ -326,25 +326,25 @@ class ExcelManipulator:
             cell.value = new_formula
 
         # 범위에 함수 적용
-        self._apply_to_range(command.target_range, apply_round_to_cell)
+        self._apply_to_range(command.target_cell, apply_round_to_cell)
 
     def _apply_isblank(self, command: ExcelCommand):
         """ISBLANK 함수를 적용합니다."""
         value = command.parameters.get("value", "")
         if not value:
             return
-        self.active_sheet[command.target_range] = f"=ISBLANK({value})"
+        self.active_sheet[command.target_cell] = f"=ISBLANK({value})"
 
     def _apply_if(self, command: ExcelCommand) -> None:
         c = command.parameters
         formula = f'=IF({c["condition"]}, "{c["true_value"]}", "{c["false_value"]}")'
-        self.active_sheet[command.target_range] = formula
+        self.active_sheet[command.target_cell] = formula
 
     def _apply_logical_formula(self, command: ExcelCommand, func_name: str) -> None:
         conditions = command.parameters.get("conditions", [])
         joined = ",".join(conditions)
         formula = f"={func_name.upper()}({joined})"
-        self.active_sheet[command.target_range] = formula
+        self.active_sheet[command.target_cell] = formula
 
     # ──────────────────────────────
     # 텍스트 처리 함수
@@ -354,7 +354,7 @@ class ExcelManipulator:
         if command.parameters and "source" in command.parameters:
             source = command.parameters["source"]
             formula = f"=TRIM({source})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     # 데이터 관련 명령어 구현
     def _set_value(self, command: ExcelCommand) -> None:
@@ -362,36 +362,36 @@ class ExcelManipulator:
         if command.parameters and "value" in command.parameters:
             value = command.parameters["value"]
 
-            if ":" in command.target_range:
+            if ":" in command.target_cell:
                 # 범위의 모든 셀에 같은 값 설정
-                self._apply_to_range(command.target_range, lambda cell: setattr(cell, 'value', value))
+                self._apply_to_range(command.target_cell, lambda cell: setattr(cell, 'value', value))
             else:
                 # 단일 셀에 값 설정
-                self.active_sheet[command.target_range] = value
+                self.active_sheet[command.target_cell] = value
 
     def _clear_cells(self, command: ExcelCommand) -> None:
         """셀의 내용을 지웁니다."""
-        self._apply_to_range(command.target_range, lambda cell: setattr(cell, 'value', None))
+        self._apply_to_range(command.target_cell, lambda cell: setattr(cell, 'value', None))
 
     def _merge_cells(self, command: ExcelCommand) -> None:
         """셀을 병합합니다."""
-        self.active_sheet.merge_cells(command.target_range)
+        self.active_sheet.merge_cells(command.target_cell)
 
     def _unmerge_cells(self, command: ExcelCommand) -> None:
         """셀 병합을 해제합니다."""
-        self.active_sheet.unmerge_cells(command.target_range)
+        self.active_sheet.unmerge_cells(command.target_cell)
 
 
-    def _apply_to_range(self, target_range: str, func) -> None:
+    def _apply_to_range(self, target_cell: str, func) -> None:
         """범위의 모든 셀에 함수를 적용하는 헬퍼 메서드"""
-        if ":" in target_range:
+        if ":" in target_cell:
             # 범위인 경우
-            for row in self.active_sheet[target_range]:
+            for row in self.active_sheet[target_cell]:
                 for cell in row:
                     func(cell)
         else:
             # 단일 셀인 경우
-            cell = self.active_sheet[target_range]
+            cell = self.active_sheet[target_cell]
             func(cell)
 
     def _parse_range(self, range_str: str) -> tuple:
@@ -444,7 +444,7 @@ class ExcelManipulator:
 
             # IFERROR 수식 생성
             formula = f"=IFERROR({test_formula}, {error_value})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_ifna(self, command: ExcelCommand) -> None:
         """
@@ -462,7 +462,7 @@ class ExcelManipulator:
 
             # IFNA 수식 생성
             formula = f"=IFNA({test_formula}, {na_value})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_ifs(self, command: ExcelCommand) -> None:
         """
@@ -485,8 +485,12 @@ class ExcelManipulator:
                     conditions_values.append(f"{condition}, {value}")
 
             if conditions_values:
-                formula = f"=IFS({', '.join(conditions_values)})"
-                self.active_sheet[command.target_range] = formula
+                quoted = [
+                    f'{v}' if i % 2 == 0 else f'"{v}"'
+                    for i, v in enumerate(conditions_values_list)
+                ]
+                formula = f"=IFS({', '.join(quoted)})"
+                self.active_sheet[command.target_cell] = formula
 
     # 고급 검색 함수 관련 메소드들
     def _apply_xlookup(self, command: ExcelCommand) -> None:
@@ -520,7 +524,7 @@ class ExcelManipulator:
                 formula_parts.append(command.parameters["search_mode"])
 
             formula = f"=XLOOKUP({', '.join(map(str, formula_parts))})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
 
     def _apply_filter(self, command: ExcelCommand) -> None:
@@ -544,7 +548,7 @@ class ExcelManipulator:
             else:
                 formula = f"=FILTER({array}, {include})"
 
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_unique(self, command: ExcelCommand) -> None:
         """
@@ -573,7 +577,7 @@ class ExcelManipulator:
                     formula_parts.append(str(exactly_once).upper())
 
             formula = f"=UNIQUE({', '.join(map(str, formula_parts))})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     # 통계 함수 관련 메소드들
     def _apply_median(self, command: ExcelCommand) -> None:
@@ -588,7 +592,7 @@ class ExcelManipulator:
         if command.parameters and "range" in command.parameters:
             range_str = command.parameters["range"]
             formula = f"=MEDIAN({range_str})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_mode(self, command: ExcelCommand) -> None:
         """
@@ -604,7 +608,7 @@ class ExcelManipulator:
             range_str = command.parameters["range"]
             # MODE.SNGL 사용 (Excel 2010 이후 권장)
             formula = f"=MODE.SNGL({range_str})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_stdev(self, command: ExcelCommand) -> None:
         """
@@ -628,7 +632,7 @@ class ExcelManipulator:
             else:
                 formula = f"=STDEV.S({range_str})"
 
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def _apply_rank(self, command: ExcelCommand) -> None:
         """
@@ -650,7 +654,7 @@ class ExcelManipulator:
             order = command.parameters["order"] if len(command.parameters) > 2 else "0"
 
             formula = f"=RANK.EQ({number}, {ref}, {order})"
-            self.active_sheet[command.target_range] = formula
+            self.active_sheet[command.target_cell] = formula
 
     def log_worksheet_contents(self, log_title: str = "워크시트 내용") -> None:
         """
@@ -747,7 +751,7 @@ def process_excel_with_commands(
     # 명령어 실행
     print(f"\n[실행할 명령어 목록]")
     for i, command in enumerate(commands, 1):
-        print(f"  {i}. {command.command_type} -> {command.target_range} | {command.parameters}")
+        print(f"  {i}. {command.command_type} -> {command.target_cell} | {command.parameters}")
     print()
 
     manipulator.execute_commands(commands)
