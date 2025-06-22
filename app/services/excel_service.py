@@ -488,12 +488,18 @@ class ExcelManipulator:
                     conditions_values.append(f"{condition}, {value}")
 
             if conditions_values:
+                formula = f"=IFS({', '.join(conditions_values)})"
+                self.active_sheet[command.target_range] = formula
+
+            '''
+            if conditions_values:
                 quoted = [
                     f'{v}' if i % 2 == 0 else f'"{v}"'
                     for i, v in enumerate(conditions_values_list)
                 ]
                 formula = f"=IFS({', '.join(quoted)})"
                 self.active_sheet[command.target_cell] = formula
+                '''
 
     def _apply_xlookup(self, command: ExcelCommand) -> None:
         """
