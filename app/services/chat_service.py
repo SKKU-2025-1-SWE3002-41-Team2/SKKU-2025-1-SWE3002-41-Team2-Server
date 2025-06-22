@@ -8,10 +8,10 @@ from app.models import ChatSession, Message, ChatSheet, User
 from typing import cast, List, Optional, Any
 
 
-from app.schemas.chat import ChatSessionCreateResponse, MessageResponse, LLMResponse
+from app.schemas.chat_schema import ChatSessionCreateResponse, MessageResponse, LLMResponse
 
-from app.services.llm import get_llm_response
-from app.services.excel import process_excel_with_commands
+from app.services.llm_service import get_llm_response
+from app.services.excel_service import process_excel_with_commands
 from app.utils.timezone import KST
 
 """

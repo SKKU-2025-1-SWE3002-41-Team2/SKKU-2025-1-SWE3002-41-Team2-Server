@@ -10,7 +10,7 @@ from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import column_index_from_string
 import re
 
-from app.schemas.excel import ExcelCommand
+from app.schemas.excel_schema import ExcelCommand
 
 
 class ExcelManipulator:

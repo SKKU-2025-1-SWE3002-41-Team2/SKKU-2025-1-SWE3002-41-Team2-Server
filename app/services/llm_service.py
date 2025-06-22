@@ -1,4 +1,4 @@
-# app/services/llm.py
+# app/services/llm_service.py
 """
 LLM 서비스 모듈
 OpenAI GPT를 사용하여 자연어 명령을 엑셀 명령어로 변환하는 서비스
@@ -11,9 +11,9 @@ import io
 
 from openpyxl import load_workbook
 
-from app.schemas.llm import LLMResultInternal, ResponseResult
-from app.services.excel import create_empty_excel
-from app.services.llm_prompt import (
+from app.schemas.llm_schema import LLMResultInternal, ResponseResult
+from app.services.excel_service import create_empty_excel
+from app.services.llm_prompt_service import (
     SYSTEM_PROMPT,
     RESPONSE_SCHEMA,
     create_user_prompt,
@@ -21,7 +21,7 @@ from app.services.llm_prompt import (
 )
 
 # 타입 힌트를 위한 임포트
-from app.schemas.excel import ExcelCommand
+from app.schemas.excel_schema import ExcelCommand
 
 
 class LLMService:

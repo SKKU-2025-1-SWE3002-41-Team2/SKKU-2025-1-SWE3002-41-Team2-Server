@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from app.services.auth import login
+from app.services.auth_service import login
 from app.models import User
 from app.exceptions.http_exceptions import UnauthorizedException
 

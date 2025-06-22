@@ -1,4 +1,4 @@
-# app/services/llm_prompt.py
+# app/services/llm_prompt_service.py
 """
 LLM 프롬프트 템플릿 정의
 이 파일은 LLM과의 상호작용에서 사용되는 모든 프롬프트를 관리합니다.

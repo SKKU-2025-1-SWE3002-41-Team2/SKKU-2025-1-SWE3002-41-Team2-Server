@@ -10,9 +10,9 @@ import io
 from unittest.mock import MagicMock, patch, Mock
 from openpyxl import Workbook
 
-from app.services.llm import LLMService, get_llm_response
-from app.schemas.excel import ExcelCommand
-from app.schemas.llm import ResponseResult
+from app.services.llm_service import LLMService, get_llm_response
+from app.schemas.excel_schema import ExcelCommand
+from app.schemas.llm_schema import ResponseResult
 
 
 class TestLLMService:
@@ -591,7 +591,7 @@ class TestLLMService:
     # _call_gpt_api Mock 테스트
     # =========================
 
-    @patch('app.services.llm.OpenAI')
+    @patch('app.services.llm_service.OpenAI')
     def test_call_gpt_api_success(self, mock_openai):
         """GPT API 호출 - 성공적인 응답"""
         # OpenAI 클라이언트 mock 설정
@@ -622,7 +622,7 @@ class TestLLMService:
 class TestModuleLevelFunctions:
     """모듈 레벨 함수들의 테스트"""
 
-    @patch('app.services.llm.LLMService')
+    @patch('app.services.llm_service.LLMService')
     def test_get_llm_response_function(self, mock_llm_service_class):
         """get_llm_response 모듈 함수 테스트"""
         # Mock 설정
