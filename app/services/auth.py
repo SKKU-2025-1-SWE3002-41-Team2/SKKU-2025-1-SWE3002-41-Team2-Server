@@ -12,5 +12,5 @@ def login(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
 
     if not user or user.password != password:
-        raise UnauthorizedException
+        raise UnauthorizedException()
     return user
