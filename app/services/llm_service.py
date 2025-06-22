@@ -89,8 +89,6 @@ class LLMService:
                 summary=session_summary + parsed_response["summary"] + " [end] "
             )
 
-
-
         except Exception as e:
             print(f"LLM 처리 중 오류 발생: {str(e)}")
             # 에러 발생시 기본 응답 반환
@@ -229,14 +227,16 @@ class LLMService:
     def _convert_to_excel_commands(self, commands: List[Dict[str, Any]]) -> List[ExcelCommand]:
         """
         파싱된 명령어를 ExcelCommand 객체 리스트로 변환합니다.
+        round 명령어는 항상 리스트의 맨 뒤로 이동시킵니다.
 
         Args:
             commands: 파싱된 명령어 딕셔너리 리스트
 
         Returns:
-            ExcelCommand 객체 리스트
+            ExcelCommand 객체 리스트 (round 명령어는 맨 뒤에 위치)
         """
         excel_commands = []
+        round_commands = []  # round 명령어를 별도로 저장할 리스트
 
         for cmd in commands:
             # parameters 배열을 딕셔너리로 변환
@@ -251,7 +251,22 @@ class LLMService:
                 target_cell=cmd["target_cell"],
                 parameters=parameters_dict
             )
-            excel_commands.append(excel_command)
+
+            # round 명령어인지 확인
+            if cmd["command_type"].lower() == "round":
+                # round 명령어는 별도 리스트에 저장
+                round_commands.append(excel_command)
+            else:
+                # round가 아닌 명령어는 일반 리스트에 추가
+                excel_commands.append(excel_command)
+
+        # round 명령어들을 맨 뒤에 추가
+        excel_commands.extend(round_commands)
+
+        # 로깅 추가 (디버깅용)
+        if round_commands:
+            print(f"[INFO] {len(round_commands)}개의 round 명령어를 리스트 맨 뒤로 이동했습니다.")
+            print(f"[INFO] 최종 명령어 순서: {[cmd.command_type for cmd in excel_commands]}")
 
         return excel_commands
 
