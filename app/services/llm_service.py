@@ -80,7 +80,7 @@ class LLMService:
             return ResponseResult(
                 chat=parsed_response["response"],
                 cmd_seq=excel_commands,  # ExcelCommand 객체 리스트를 그대로 반환
-                summary=parsed_response["summary"]
+                summary=session_summary+parsed_response["summary"]
             )
 
         except Exception as e:
