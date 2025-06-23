@@ -1,4 +1,8 @@
 # 🧐 Excel Command Platform (Backend)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18.0+-blue.svg)](https://reactjs.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0+-orange.svg)](https://www.mysql.com/)
 
 LLM 기반 자연어 엑셀 명령어 분석 및 처리 서버입니다.\
 사용자가 자연어로 입력한 명령을 분석하고, 실제 엑셀 파일에 수식 또는 스타일을 적용해주는 기능을 제공합니다.
@@ -6,16 +10,63 @@ LLM 기반 자연어 엑셀 명령어 분석 및 처리 서버입니다.\
 > 📌 프론트엔드 저장소는 [여기](https://github.com/SKKU-2025-1-SWE3002-41-Team2/frontend)에서 확인할 수 있습니다.
 
 ---
+## 목차
+- [프로젝트 개요](#프로젝트-개요)
+- [주요 기능](#주요-기능)
+- [기술 스택](#기술-스택)
+- [시스템 아키텍처](#시스템-아키텍처)
+- [프로젝트 구조](#프로젝트-구조)
+- [설치 및 실행](#설치-및-실행)
+- [개발 가이드](#개발-가이드)
+- [예시 명령](#예시-명령)
+- [LLM 처리 방식](#llm-처리-방식)
+- [팀원 소개](#팀원-소개)
+- [라이선스](#라이선스)
 
+---
 ## 프로젝트 개요
 
 이 프로젝트는 자연어를 통해 엑셀 파일을 조작하는 시스템입니다.\
 예를 들어, "A1에서 A10까지 1\~10을 넣고 평균을 구해줘" 와 같은 명령어를 입력하면, AI가 이를 해석하여 엑셀 명령어로 변환하고, 실제 시트 데이터를 수정합니다.
+### 배경
+- 기존 AI 도구들은 엑셀 함수만 알려주고, 사용자가 직접 입력해야 하는 번거로움 존재
+- 엑셀 함수에 대한 기초 지식 없이는 활용이 어려움
+- 복잡한 함수 조합이나 다중 작업 시 반복적인 설명과 적용 필요
+
+### 목표
+-  **자연어 명령**으로 엑셀 작업 수행
+-  **AI가 자동으로** 엑셀 함수 생성 및 적용
+-  **실시간 시각화**로 결과 즉시 확인
+-  **원클릭 다운로드**로 완성된 엑셀 파일 저장
 
 ---
 
-## 기술 스택
+##  주요 기능
 
+### 1. 자연어 명령 처리
+```
+사용자: "A1부터 A10까지 1에서 10까지 숫자를 넣고, B1에 평균을 구해줘"
+AI: [작업 수행 후] "A1:A10에 1-10을 입력하고, B1에 평균값 5.5를 계산했습니다."
+```
+
+### 2. 지원하는 엑셀 기능
+- **기본 함수**: SUM, AVERAGE, COUNT, MAX, MIN
+- **논리 함수**: IF, AND, OR, IFS, IFERROR
+- **텍스트 함수**: CONCATENATE, LEFT, RIGHT, MID, TRIM
+- **검색 함수**: VLOOKUP, HLOOKUP, INDEX, MATCH
+- **통계 함수**: MEDIAN, MODE, STDEV, RANK
+- **조건부 함수**: COUNTIF, SUMIF, AVERAGEIF
+
+### 3. 고급 기능
+-  **파일 업로드/다운로드**: 기존 엑셀 파일 편집 가능
+-  **대화 히스토리**: 이전 작업 내역 저장 및 불러오기
+-  **반응형 UI**: 다양한 화면 크기 지원
+
+---
+
+
+## 기술 스택
+### Backend
 - **Backend Framework**: FastAPI
 - **Language**: Python 3.11+
 - **AI 모델**: OpenAI GPT (chat API 사용)
@@ -25,62 +76,129 @@ LLM 기반 자연어 엑셀 명령어 분석 및 처리 서버입니다.\
 - **API 문서화**: Swagger UI (`/docs`)
 - **테스트**: pytest
 
+### DevOps
+- **컨테이너**: Docker & Docker Compose
+- **API 문서**: Swagger UI
+- **테스트**: pytest (Backend)
+---
+
+## 시스템 아키텍처
+
+```mermaid
+graph TB
+    subgraph "Frontend"
+        A[React App] --> B[Univer Editor]
+        A --> C[Chat Interface]
+    end
+    
+    subgraph "Backend"
+        D[FastAPI Server] --> E[LLM Service]
+        D --> F[Excel Service]
+        D --> G[Chat Service]
+    end
+    
+    subgraph "External"
+        H[OpenAI GPT-4]
+        I[MySQL DB]
+    end
+    
+    A <--> D
+    E <--> H
+    D <--> I
+```
+
+### 데이터 흐름
+1. 사용자가 자연어 명령 입력
+2. FastAPI 서버가 명령을 GPT에 전달
+3. GPT가 엑셀 명령어 시퀀스로 변환
+4. Excel Service가 실제 파일 수정
+5. 결과를 Frontend에 전송 및 렌더링
+
 ---
 
 ## 프로젝트 구조
 
 ```
-SKKU-2025-1-SWE3002-41-Team2-Server/
+backend/
 ├── app/
-│   ├── api/                 # API 라우터
-│   ├── services/            # Excel 조작, LLM 처리
-│   ├── schemas/             # Pydantic 스키마
+│   ├── main.py              # FastAPI 엔트리포인트
+│   ├── database.py          # DB 연결 설정
 │   ├── models/              # SQLAlchemy 모델
-│   ├── utils/               # 유틸리티 함수
-│   └── main.py              # FastAPI 엔트리트포인트
-├── tests/                   # 유닛 테스트
+│   │   ├── user.py
+│   │   ├── chat_session.py
+│   │   ├── message.py
+│   │   └── chat_sheet.py
+│   ├── schemas/             # Pydantic 스키마
+│   │   ├── auth_schema.py
+│   │   ├── chat_schema.py
+│   │   └── excel_schema.py
+│   ├── services/            # 비즈니스 로직
+│   │   ├── auth_service.py
+│   │   ├── chat_service.py
+│   │   ├── llm_service.py
+│   │   └── excel_service.py
+│   └── routers/             # API 라우터
+│       ├── auth_router.py
+│       └── chat_router.py
+├── tests/                   # 테스트 코드
 ├── requirements.txt
-├── Dockerfile
-└── docker-compose.yml
+├── docker-compose.yml
+└── README.md
 ```
 
 ---
 
-## 실행 방법
+##  설치 및 실행
 
-### 1. MySQL (Docker) 실행
+### 사전 요구사항
+- Python 3.11+
+- Node.js 18+
+- Docker & Docker Compose
+- OpenAI API Key
 
+### 1. 저장소 클론
 ```bash
-docker compose up -d
+git clone https://github.com/SKKU-2025-1-SWE3002-41-Team2/backend.git
+cd backend
 ```
-- 포트: 3307 → 내부 3306
-- 계정 정보: `excel` / `1234`
-- 데이터베이스: `excel_platform`
 
-### 2. FastAPI 서버 실행
+### 2. 환경 변수 설정
+`.env` 파일 생성:
+```env
+DATABASE_URL=mysql+pymysql://excel:1234@localhost:3307/excel_platform
+OPENAI_API_KEY=your-openai-api-key-here
+```
 
+### 3. Docker로 MySQL 실행
 ```bash
-# 가상환경 설정 및 패키지 설치
+docker-compose up -d
+```
+
+### 4. Backend 실행
+```bash
+# 가상환경 생성 및 활성화
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 패키지 설치
 pip install -r requirements.txt
 
-### 3. .env 파일 설정
-
-.env 파일에는 `DATABASE_URL`과 `OPENAI_API_KEY`가 필요합니다. 예시는 다음과 같습니다:
-
-```
-DATABASE_URL=mysql+pymysql://excel:1234@localhost:3307/excel_platform<br>
-OPENAI_API_KEY=[gpt_api_key]
-```
-
-
 # 서버 실행
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ---
+##  개발 가이드
 
+### 코드 스타일
+- **Python**: PEP 8 준수
+- **JavaScript**: ESLint + Prettier
+- **명명 규칙**:
+  - 클래스: PascalCase
+  - 함수/변수: camelCase
+  - 상수: UPPER_SNAKE_CASE
+
+---
 ## 예시 명령
 
 ### 명령:
@@ -94,32 +212,27 @@ uvicorn app.main:app --reload
 
 ---
 
-## 주요 기능
-
-- 자연어 기반 Excel 명령어 처리
-- 수식 함수 지원 (SUM, AVERAGE, COUNT, IFS 등)
-- 셀 서식 지정 (포트, 테두리, 배경색, 크기 등)
-- 대화 세션 관리 (ChatSession + Message)
-- 시트 데이터 저장 및 처리 (ChatSheet)
-
----
-
 ## LLM 처리 방식
 
 - 사용자의 자연어 명령 → GPT API로 파시드
 - 응답 JSON 내 `commands` 배열 파시드
 - 각 명령어를 openpyxl 기반으로 엑셀 파일에 적용
 
+
 ---
 
-## 프론트엔드
+## 👥 팀원 소개
 
-UniverJS 기반의 웹 엑셀 인터페이스를 사용하여 엑셀 시트를 렌더링합니다.\
-해당 프로젝트는 [frontend](https://github.com/SKKU-2025-1-SWE3002-41-Team2/frontend) 폴더 또는 별도 저장소에서 확인 가능합니다.
+| 이름  | 역할             | 담당 업무                              |
+|-----|----------------|------------------------------------|
+| 방기호 | 팀장, 프론트엔드, 백엔드 | 프로젝트 총괄, UI/UX 디자인, 엑셀 서비스         |
+| 이상훈 | 프론트엔드, 백엔드     | React 개발, Univer 통합, 엑셀 서비스        |
+| 윤규성 | 백엔드            | LLM 프롬포팅, 엑셀 서비스            |
+| 정관용 | 백엔드            | LLM 서비스, LLM 프롬포팅, 엑셀 서비스 ,  문서 관리 |
+| 박동민 | 백엔드            | DB 설계, API 설계, LLM 프롬포팅, 문서 관리     |
 
 ---
 
 ## 라이선스
 
-본 프로젝트는 MIT License 하에 배포됩니다.
-
+이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.

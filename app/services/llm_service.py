@@ -76,11 +76,11 @@ class LLMService:
             # 5. ExcelCommand 객체 리스트로 변환
             excel_commands = self._convert_to_excel_commands(parsed_response["commands"])
 
-            print("summary : " + session_summary + parsed_response["summary"] + " [end] ")
+            # ("summary : " + session_summary + parsed_response["summary"] + " [end] ")
 
 
-            print("더해진 로그")
-            print(session_summary+parsed_response["summary"])
+            # print("더해진 로그")
+            # print(session_summary+parsed_response["summary"])
 
             # 6. 결과 반환
             return ResponseResult(
@@ -175,7 +175,7 @@ class LLMService:
             print(response.refusal)
 
         #logging
-        print(f"GPT 응답: {response.content}")
+        # print(f"GPT 응답: {response.content}")
         # 응답 반환
         return response.content
 
@@ -195,8 +195,8 @@ class LLMService:
             # JSON 파싱
             parsed = json.loads(response)
 
-            print("parsed: ")
-            print(parsed)
+            # print("parsed: ")
+            # print(parsed)
             # 필수 필드 검증
             required_fields = ["response", "commands", "summary"]
             for field in required_fields:
@@ -263,10 +263,12 @@ class LLMService:
         # round 명령어들을 맨 뒤에 추가
         excel_commands.extend(round_commands)
 
+        '''
         # 로깅 추가 (디버깅용)
         if round_commands:
             print(f"[INFO] {len(round_commands)}개의 round 명령어를 리스트 맨 뒤로 이동했습니다.")
             print(f"[INFO] 최종 명령어 순서: {[cmd.command_type for cmd in excel_commands]}")
+        '''
 
         return excel_commands
 

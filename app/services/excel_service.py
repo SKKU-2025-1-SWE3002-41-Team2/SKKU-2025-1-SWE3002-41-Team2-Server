@@ -319,7 +319,7 @@ class ExcelManipulator:
                 # 앞의 =을 모두 제거
                 while formula_content.startswith('='):
                     formula_content = formula_content[1:]
-                print(f"수식 감지: {formula_content} (소수점 자리수: {num_digits}) 기존 값: {value_str}")
+                # print(f"수식 감지: {formula_content} (소수점 자리수: {num_digits}) 기존 값: {value_str}")
                 # ROUND 함수로 감싸기
                 new_formula = f"=ROUND({formula_content}, {num_digits})"
             else:
@@ -515,13 +515,13 @@ class ExcelManipulator:
                 formula_parts.append(f"{processed_condition},{processed_value}")
 
                 # 디버깅 로그
-                print(f"[IFS 처리] 조건 {i // 2 + 1}: {condition} -> {processed_condition}")
-                print(f"[IFS 처리] 값 {i // 2 + 1}: {value} ({type(value).__name__}) -> {processed_value}")
+                # print(f"[IFS 처리] 조건 {i // 2 + 1}: {condition} -> {processed_condition}")
+                # print(f"[IFS 처리] 값 {i // 2 + 1}: {value} ({type(value).__name__}) -> {processed_value}")
 
             # 최종 IFS 수식 생성 및 적용
             if formula_parts:
                 formula = f"=IFS({','.join(formula_parts)})"
-                print(f"[IFS 완료] 생성된 수식: {formula}")
+                # print(f"[IFS 완료] 생성된 수식: {formula}")
                 self.active_sheet[command.target_cell] = formula
 
         except Exception as e:
@@ -931,30 +931,31 @@ class ExcelManipulator:
             print(f"[{log_title}] 워크북이 로드되지 않았습니다.")
             return
 
-        print(f"\n{'=' * 50}")
-        print(f"[{log_title}]")
-        print(f"{'=' * 50}")
+        # print(f"\n{'=' * 50}")
+        # print(f"[{log_title}]")
+        # print(f"{'=' * 50}")
 
         # 워크시트 기본 정보
         ws = self.active_sheet
         max_row = ws.max_row
         max_col = ws.max_column
 
-        print(f"워크시트명: {ws.title}")
-        print(f"최대 행: {max_row}, 최대 열: {max_col}")
+        # print(f"워크시트명: {ws.title}")
+        # print(f"최대 행: {max_row}, 최대 열: {max_col}")
 
         if max_row == 1 and max_col == 1 and ws.cell(1, 1).value is None:
             print("워크시트가 비어있습니다.")
             print(f"{'=' * 50}\n")
             return
 
+        '''
         # 헤더 출력 (열 번호)
         print("\n   ", end="")
         for col in range(1, max_col + 1):
             col_letter = ws.cell(1, col).column_letter
             print(f"{col_letter:>12}", end="")
         print()
-
+        
         # 각 행의 데이터 출력
         for row in range(1, max_row + 1):
             print(f"{row:>3}:", end="")
@@ -987,7 +988,7 @@ class ExcelManipulator:
             print()  # 행 끝에서 줄바꿈
 
         print(f"{'=' * 50}\n")
-
+        '''
 
 
 def process_excel_with_commands(
