@@ -1,4 +1,4 @@
-# 🧐 Excel Command Platform (Backend)
+#  Excel Command Platform (Backend)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18.0+-blue.svg)](https://reactjs.org/)
@@ -7,7 +7,7 @@
 LLM 기반 자연어 엑셀 명령어 분석 및 처리 서버입니다.\
 사용자가 자연어로 입력한 명령을 분석하고, 실제 엑셀 파일에 수식 또는 스타일을 적용해주는 기능을 제공합니다.
 
-> 📌 프론트엔드 저장소는 [여기](https://github.com/SKKU-2025-1-SWE3002-41-Team2/frontend)에서 확인할 수 있습니다.
+>  프론트엔드 저장소는 [여기](https://github.com/SKKU-2025-1-SWE3002-41-Team2/frontend)에서 확인할 수 있습니다.
 
 ---
 ## 목차
