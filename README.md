@@ -89,7 +89,7 @@ uvicorn app.main:app --reload
 
 ### 실행되는 내부 명령 목록:
 
-1. `set_value`: A1~~A10에 1~~10 삽입
+1. `set_value`: A1-A10에 1-10 삽입
 2. `average`: B1에 `=AVERAGE(A1:A10)` 삽입
 
 ---
