@@ -146,7 +146,7 @@ graph TB
     style S4 fill:#bfb,stroke:#333,stroke-width:2px
 ```
 
-'''
+'''mermaid
 sequenceDiagram
     participant U as 사용자
     participant F as Frontend
