@@ -4,7 +4,8 @@
 openpyxl을 사용하여 엑셀 파일을 직접 조작하는 기능을 제공합니다.
 """
 import io
-from typing import List, Any, Optional
+import re
+from typing import List, Any, Optional, Union
 from openpyxl import load_workbook, Workbook
 from openpyxl.utils import column_index_from_string
 import re
@@ -471,33 +472,290 @@ class ExcelManipulator:
         """
         IFS 함수를 적용합니다.
         여러 조건을 순차적으로 검사하여 첫 번째 참인 조건의 결과를 반환합니다.
+        조건과 값의 데이터 타입을 자동으로 판별하여 올바른 Excel 수식을 생성합니다.
 
         Args:
             command: ExcelCommand 객체
-                - parameters: [조건1, 값1, 조건2, 값2, ...] 형태의 배열
+                - target_cell: IFS 함수를 적용할 셀
+                - parameters["conditions_values"]: [조건1, 값1, 조건2, 값2, ...] 형태의 배열
+
+        Example:
+            조건-값 쌍: ["B2>=90", "A", "B2>=80", "B", "TRUE", "F"]
+            생성되는 수식: =IFS(B2>=90,"A",B2>=80,"B",TRUE,"F")
         """
-        if command.parameters and len(command.parameters) >= 2:
-            # 조건과 값의 쌍으로 수식 구성
-            conditions_values = []
-            for i in range(0, len(command.parameters), 2):
-                if i + 1 < len(command.parameters):
-                    condition = command.parameters[i]
-                    value = command.parameters[i + 1]
-                    conditions_values.append(f"{condition}, {value}")
+        if not command.parameters or "conditions_values" not in command.parameters:
+            print(f"[IFS 오류] conditions_values 파라미터가 없습니다. target_cell: {command.target_cell}")
+            return
 
-            if conditions_values:
-                formula = f"=IFS({', '.join(conditions_values)})"
-                self.active_sheet[command.target_range] = formula
+        conditions_values = command.parameters["conditions_values"]
 
-            '''
-            if conditions_values:
-                quoted = [
-                    f'{v}' if i % 2 == 0 else f'"{v}"'
-                    for i, v in enumerate(conditions_values_list)
-                ]
-                formula = f"=IFS({', '.join(quoted)})"
+        # 조건-값 쌍 검증
+        if len(conditions_values) < 2:
+            print(f"[IFS 오류] 최소 하나의 조건-값 쌍이 필요합니다. target_cell: {command.target_cell}")
+            return
+
+        if len(conditions_values) % 2 != 0:
+            print(f"[IFS 오류] 조건과 값이 쌍으로 제공되어야 합니다. 현재 개수: {len(conditions_values)}")
+            return
+
+        # 조건-값 쌍들을 처리하여 Excel 수식 생성
+        formula_parts = []
+
+        try:
+            for i in range(0, len(conditions_values), 2):
+                condition = conditions_values[i]
+                value = conditions_values[i + 1]
+
+                # 조건 부분 처리 (일반적으로 수식이므로 그대로 사용)
+                processed_condition = self._process_ifs_condition(condition)
+
+                # 값 부분 처리 (타입에 따라 다르게 처리)
+                processed_value = self._process_ifs_value(value)
+
+                formula_parts.append(f"{processed_condition},{processed_value}")
+
+                # 디버깅 로그
+                print(f"[IFS 처리] 조건 {i // 2 + 1}: {condition} -> {processed_condition}")
+                print(f"[IFS 처리] 값 {i // 2 + 1}: {value} ({type(value).__name__}) -> {processed_value}")
+
+            # 최종 IFS 수식 생성 및 적용
+            if formula_parts:
+                formula = f"=IFS({','.join(formula_parts)})"
+                print(f"[IFS 완료] 생성된 수식: {formula}")
                 self.active_sheet[command.target_cell] = formula
-                '''
+
+        except Exception as e:
+            print(f"[IFS 오류] 수식 생성 중 오류 발생: {str(e)}")
+            print(f"[IFS 오류] target_cell: {command.target_cell}, parameters: {command.parameters}")
+
+    def _process_ifs_condition(self, condition: Union[str, int, float, bool]) -> str:
+        """
+        IFS 함수의 조건 부분을 처리합니다.
+        조건은 대부분 논리식이므로 문자열로 변환하여 반환합니다.
+
+        Args:
+            condition: 조건 (예: "A2>=90", "AND(A2>80,B2>0)", "TRUE")
+
+        Returns:
+            처리된 조건 문자열
+        """
+        if condition is None:
+            return "FALSE"
+
+        # 불린값 처리
+        if isinstance(condition, bool):
+            return str(condition).upper()
+
+        # 문자열이 아닌 경우 문자열로 변환
+        return str(condition)
+
+    def _process_ifs_value(self, value: Union[str, int, float, bool]) -> str:
+        """
+        IFS 함수의 값 부분을 처리합니다.
+        데이터 타입에 따라 Excel에서 올바르게 인식할 수 있는 형태로 변환합니다.
+
+        Args:
+            value: 값 (문자열, 숫자, 수식 등)
+
+        Returns:
+            Excel에서 사용할 수 있는 형태로 처리된 값
+        """
+        # 1. None 값 처리
+        if value is None:
+            return '""'
+
+        # 2. 불린값 처리
+        if isinstance(value, bool):
+            return str(value).upper()  # TRUE 또는 FALSE
+
+        # 3. 숫자 처리 (정수, 실수)
+        if isinstance(value, (int, float)):
+            return str(value)
+
+        # 4. 문자열 처리 - 가장 복잡한 부분
+        if isinstance(value, str):
+            return self._process_ifs_string_value(value)
+
+        # 5. 기타 타입은 문자열로 변환하여 따옴표로 감싸기
+        return f'"{str(value)}"'
+
+    def _process_ifs_string_value(self, value: str) -> str:
+        """
+        IFS 함수의 문자열 값을 분석하여 적절한 형태로 처리합니다.
+
+        Args:
+            value: 문자열 값
+
+        Returns:
+            처리된 값
+        """
+        # 빈 문자열 처리
+        if not value.strip():
+            return '""'
+
+        # 이미 따옴표로 감싸진 문자열 (중복 처리 방지)
+        if value.startswith('"') and value.endswith('"') and len(value) > 1:
+            return value
+
+        # 1. TRUE/FALSE 문자열인지 확인 (대소문자 무관)
+        if value.upper() in ['TRUE', 'FALSE']:
+            return value.upper()
+
+        # 2. Excel 함수인지 확인
+        if self._is_excel_function(value):
+            return value
+
+        # 3. 셀 참조인지 확인 (예: A1, B2, A1:B10, Sheet1!A1)
+        if self._is_cell_reference(value):
+            return value
+
+        # 4. 수식인지 확인 (=로 시작하거나 연산자 포함)
+        if self._is_formula_expression(value):
+            return value
+
+        # 5. 숫자 문자열인지 확인
+        if self._is_numeric_string(value):
+            return value  # 숫자는 따옴표 없이
+
+        # 6. 일반 텍스트는 따옴표로 감싸기
+        return f'"{value}"'
+
+    def _is_excel_function(self, value: str) -> bool:
+        """
+        Excel 함수인지 판별합니다.
+
+        Args:
+            value: 검사할 문자열
+
+        Returns:
+            Excel 함수이면 True
+        """
+        # Excel 함수 목록 (주요 함수들)
+        excel_functions = {
+            # 수학 함수
+            'SUM', 'AVERAGE', 'COUNT', 'COUNTA', 'MAX', 'MIN', 'ROUND', 'ROUNDUP', 'ROUNDDOWN',
+            'ABS', 'SQRT', 'POWER', 'MOD', 'INT', 'CEILING', 'FLOOR',
+
+            # 논리 함수
+            'IF', 'AND', 'OR', 'NOT', 'IFS', 'IFERROR', 'IFNA', 'IFBLANK',
+
+            # 텍스트 함수
+            'CONCATENATE', 'LEFT', 'RIGHT', 'MID', 'LEN', 'TRIM', 'UPPER', 'LOWER',
+            'SUBSTITUTE', 'REPLACE', 'FIND', 'SEARCH', 'EXACT',
+
+            # 날짜/시간 함수
+            'TODAY', 'NOW', 'YEAR', 'MONTH', 'DAY', 'DATE', 'TIME', 'HOUR', 'MINUTE', 'SECOND',
+
+            # 검색/참조 함수
+            'VLOOKUP', 'HLOOKUP', 'INDEX', 'MATCH', 'LOOKUP', 'CHOOSE', 'XLOOKUP', 'FILTER', 'UNIQUE',
+
+            # 정보 함수
+            'ISBLANK', 'ISNUMBER', 'ISTEXT', 'ISERROR', 'ISNA', 'ISODD', 'ISEVEN',
+
+            # 통계 함수
+            'MEDIAN', 'MODE', 'STDEV', 'VAR', 'RANK', 'PERCENTILE', 'QUARTILE',
+
+            # 조건부 함수
+            'COUNTIF', 'COUNTIFS', 'SUMIF', 'SUMIFS', 'AVERAGEIF', 'AVERAGEIFS'
+        }
+
+        # 함수명(매개변수) 패턴 검사
+        # 예: SUM(A1:A10), CONCATENATE(A1," ",B1) 등
+        function_pattern = r'^([A-Z_]+)\s*\('
+        match = re.match(function_pattern, value.upper())
+
+        if match:
+            function_name = match.group(1)
+            return function_name in excel_functions
+
+        return False
+
+    def _is_cell_reference(self, value: str) -> bool:
+        """
+        셀 참조인지 판별합니다.
+
+        Args:
+            value: 검사할 문자열
+
+        Returns:
+            셀 참조이면 True
+        """
+        try:
+            # 1. 단일 셀 참조: A1, B2, Z99, AA1, AB123 등
+            single_cell_pattern = r'^[A-Z]{1,3}\d{1,7}$'
+
+            # 2. 범위 참조: A1:B10, C2:D5, AA1:AB100 등
+            range_pattern = r'^[A-Z]{1,3}\d{1,7}:[A-Z]{1,3}\d{1,7}$'
+
+            # 3. 시트 참조: Sheet1!A1, 'Sheet Name'!A1:B10 등
+            sheet_reference_pattern = r'^[\'"]?[\w\s]+[\'"]?![A-Z]{1,3}\d{1,7}(:[A-Z]{1,3}\d{1,7})?$'
+
+            # 4. 전체 열/행 참조: A:A, B:D, 1:1, 1:10 등
+            full_column_pattern = r'^[A-Z]{1,3}:[A-Z]{1,3}$'
+            full_row_pattern = r'^\d+:\d+$'
+
+            # 모든 패턴 검사
+            patterns = [
+                single_cell_pattern,
+                range_pattern,
+                sheet_reference_pattern,
+                full_column_pattern,
+                full_row_pattern
+            ]
+
+            value_upper = value.upper()
+            for pattern in patterns:
+                if re.match(pattern, value_upper):
+                    return True
+
+            return False
+
+        except Exception:
+            return False
+
+    def _is_formula_expression(self, value: str) -> bool:
+        """
+        수식 표현인지 판별합니다.
+
+        Args:
+            value: 검사할 문자열
+
+        Returns:
+            수식이면 True
+        """
+        # =로 시작하는 경우
+        if value.startswith('='):
+            return True
+
+        # 산술 연산자가 포함되고 셀 참조도 포함된 경우
+        # 예: A2*0.1, B2+C2, (A1+B1)/2 등
+        arithmetic_operators = ['+', '-', '*', '/', '^', '%']
+        has_operator = any(op in value for op in arithmetic_operators)
+
+        # 셀 참조 패턴 확인
+        has_cell_ref = bool(re.search(r'[A-Z]{1,3}\d{1,7}', value.upper()))
+
+        # 문자열 연결 연산자 & 확인
+        has_concat = '&' in value
+
+        return (has_operator or has_concat) and has_cell_ref
+
+    def _is_numeric_string(self, value: str) -> bool:
+        """
+        숫자 문자열인지 판별합니다.
+
+        Args:
+            value: 검사할 문자열
+
+        Returns:
+            숫자 문자열이면 True
+        """
+        try:
+            # 정수 또는 실수로 변환 가능한지 확인
+            float(value)
+            return True
+        except ValueError:
+            return False
 
     def _apply_xlookup(self, command: ExcelCommand) -> None:
         """
