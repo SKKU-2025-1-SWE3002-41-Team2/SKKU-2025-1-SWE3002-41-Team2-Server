@@ -146,42 +146,6 @@ graph TB
     style S4 fill:#bfb,stroke:#333,stroke-width:2px
 ```
 
-'''mermaid
-sequenceDiagram
-    participant U as 사용자
-    participant F as Frontend
-    participant R as chat_router
-    participant CS as chat_service
-    participant LS as llm_service
-    participant ES as excel_service
-    participant DB as Database
-    participant GPT as OpenAI GPT
-
-    U->>F: "A1부터 A10까지 합계 구해줘"
-    F->>R: POST /api/chat/sessions/{id}/message
-    R->>CS: save_message_and_response()
-    
-    CS->>DB: 사용자 메시지 저장
-    CS->>LS: get_llm_response()
-    LS->>GPT: 자연어 분석 요청
-    GPT-->>LS: 명령어 시퀀스 반환
-    
-    Note over LS: 응답 예시:<br/>commands: [<br/>  {type: "set_value", target: "A1:A10", params: [1,2,3...]},<br/>  {type: "sum", target: "A11", params: ["A1:A10"]}<br/>]
-    
-    LS-->>CS: ResponseResult 반환
-    CS->>ES: process_excel_with_commands()
-    ES->>ES: 엑셀 파일 수정
-    ES-->>CS: 수정된 엑셀 bytes
-    
-    CS->>DB: AI 응답 저장
-    CS->>DB: 엑셀 파일 저장
-    CS->>DB: 세션 요약 업데이트
-    
-    CS-->>R: LLMMessageResponse
-    R-->>F: 응답 (메시지 + 엑셀 데이터)
-    F-->>U: UI 업데이트
-'''
-
 ### 데이터 흐름
 1. 사용자가 자연어 명령 입력
 2. FastAPI 서버가 명령을 GPT에 전달
