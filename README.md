@@ -86,26 +86,101 @@ AI: [작업 수행 후] "A1:A10에 1-10을 입력하고, B1에 평균값 5.5를 
 
 ```mermaid
 graph TB
-    subgraph "Frontend"
-        A[React App] --> B[Univer Editor]
-        A --> C[Chat Interface]
+    subgraph "Frontend (React)"
+        A[React App]
+        B[Univer Editor<br/>- Excel 시트 렌더링<br/>- 실시간 편집]
+        C[Chat Interface<br/>- 메시지 입력<br/>- 대화 히스토리]
+        
+        A --> B
+        A --> C
     end
     
-    subgraph "Backend"
-        D[FastAPI Server] --> E[LLM Service]
-        D --> F[Excel Service]
-        D --> G[Chat Service]
+    subgraph "Backend (FastAPI)"
+        D[FastAPI Server<br/>main.py]
+        
+        subgraph "Routers"
+            R1[auth_router]
+            R2[chat_router]
+            R3[llm_router]
+        end
+        
+        subgraph "Services"
+            S1[auth_service<br/>- 로그인 처리]
+            S2[chat_service<br/>- 세션 관리<br/>- 메시지 저장<br/>- 워크플로우 조정]
+            S3[llm_service<br/>- GPT 호출<br/>- 명령어 변환]
+            S4[excel_service<br/>- 엑셀 조작<br/>- 함수 적용]
+        end
+        
+        D --> R1
+        D --> R2
+        D --> R3
+        
+        R1 --> S1
+        R2 --> S2
+        R3 --> S3
+        
+        S2 --> S3
+        S2 --> S4
     end
     
-    subgraph "External"
-        H[OpenAI GPT-4]
-        I[MySQL DB]
+    subgraph "Database"
+        DB[(MySQL<br/>- User<br/>- ChatSession<br/>- Message<br/>- ChatSheet)]
     end
     
-    A <--> D
-    E <--> H
-    D <--> I
+    subgraph "External API"
+        GPT[OpenAI GPT-4o-mini<br/>자연어 → 엑셀 명령어]
+    end
+    
+    %% Frontend-Backend 통신
+    B <-->|"엑셀 데이터<br/>(Base64)"| R2
+    C <-->|"채팅 메시지"| R2
+    A <-->|"로그인"| R1
+    
+    %% Service 간 통신
+    S3 <-->|"API 호출"| GPT
+    S2 <-->|"DB 조작"| DB
+    
+    %% 데이터 흐름 표시
+    style S2 fill:#f9f,stroke:#333,stroke-width:4px
+    style S3 fill:#bbf,stroke:#333,stroke-width:2px
+    style S4 fill:#bfb,stroke:#333,stroke-width:2px
 ```
+
+'''
+sequenceDiagram
+    participant U as 사용자
+    participant F as Frontend
+    participant R as chat_router
+    participant CS as chat_service
+    participant LS as llm_service
+    participant ES as excel_service
+    participant DB as Database
+    participant GPT as OpenAI GPT
+
+    U->>F: "A1부터 A10까지 합계 구해줘"
+    F->>R: POST /api/chat/sessions/{id}/message
+    R->>CS: save_message_and_response()
+    
+    CS->>DB: 사용자 메시지 저장
+    CS->>LS: get_llm_response()
+    LS->>GPT: 자연어 분석 요청
+    GPT-->>LS: 명령어 시퀀스 반환
+    
+    Note over LS: 응답 예시:<br/>commands: [<br/>  {type: "set_value", target: "A1:A10", params: [1,2,3...]},<br/>  {type: "sum", target: "A11", params: ["A1:A10"]}<br/>]
+    
+    LS-->>CS: ResponseResult 반환
+    CS->>ES: process_excel_with_commands()
+    ES->>ES: 엑셀 파일 수정
+    ES-->>CS: 수정된 엑셀 bytes
+    
+    CS->>DB: AI 응답 저장
+    CS->>DB: 엑셀 파일 저장
+    CS->>DB: 세션 요약 업데이트
+    
+    CS-->>R: LLMMessageResponse
+    R-->>F: 응답 (메시지 + 엑셀 데이터)
+    F-->>U: UI 업데이트
+'''
 
 ### 데이터 흐름
 1. 사용자가 자연어 명령 입력
