@@ -70,7 +70,7 @@ pip install -r requirements.txt
 .env 파일에는 `DATABASE_URL`과 `OPENAI_API_KEY`가 필요합니다. 예시는 다음과 같습니다:
 
 ```
-DATABASE_URL=mysql+pymysql://excel:1234@localhost:3307/excel_platform
+DATABASE_URL=mysql+pymysql://excel:1234@localhost:3307/excel_platform<br>
 OPENAI_API_KEY=[gpt_api_key]
 ```
 
